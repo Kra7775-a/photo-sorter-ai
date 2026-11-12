@@ -1,0 +1,61 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "svelte": true,
+  "sortPackageJson": true,
+  "sortTailwindcss": {
+    "stylesheet": "./src/app.css",
+    "functions": ["tv"]
+  },
+  "sortImports": {
+    "newlinesBetween": true,
+    "groups": [
+      ["builtin"],
+      ["svelte"],
+      ["external"],
+      ["@/lib/ai/**"],
+      ["@/lib/components/**"],
+      ["internal"],
+      ["parent", "sibling", "index"],
+      ["style"]
+    ],
+    "customGroups": [
+      {
+        "groupName": "svelte",
+        "elementNamePattern": ["svelte", "svelte/**"]
+      },
+      {
+        "groupName": "@/lib/ai/**",
+        "elementNamePattern": ["@/lib/ai/**", "@/lib/utils/**", "@/lib/state/**"]
+      },
+      {
+        "groupName": "@/lib/components/**",
+        "elementNamePattern": ["@/lib/components/**"]
+      }
+    ]
+  },
+  "ignorePatterns": [
+    "**/*.md",
+    "**/*.mdx",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/dev-dist/**",
+    "**/coverage/**",
+    "**/public/**",
+    "**/bun.lock",
+    "**/.agents/**",
+    "**/.github/**",
+    "**/.claude/**",
+    "**/.cursor/**"
+  ]
+}

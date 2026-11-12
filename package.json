@@ -1,0 +1,45 @@
+{
+  "name": "photo-sorter-ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json",
+    "typecheck": "bun check --no-script -b",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "test": "bun test --pass-with-no-tests",
+    "test:watch": "bun test --watch --pass-with-no-tests",
+    "test:coverage": "bun test --coverage --pass-with-no-tests",
+    "validate": "bun run format:check && bun run lint && bun run typecheck && bun run check && bun run test && bun run build"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.2",
+    "@tailwindcss/vite": "4.3.5",
+    "bits-ui": "2.21.0",
+    "client-zip": "2.5.1",
+    "idb": "8.0.4",
+    "phosphor-svelte": "3.1.1",
+    "tailwind-variants": "4.0.2",
+    "tailwindcss": "4.3.5",
+    "vite-plugin-pwa": "2.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@tsconfig/svelte": "5.0.9",
+    "@types/bun": "1.4.4",
+    "@types/node": "26.6.6",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "oxlint-tsgolint": "7.0.2006",
+    "svelte": "5.57.3",
+    "svelte-check": "4.7.8",
+    "typescript": "6.0.3",
+    "vite": "8.3.8"
+  }
+}
