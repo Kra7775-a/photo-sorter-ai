@@ -4,8 +4,29 @@
 @source not "../.agents";
 @source not "./**/*.test.ts";
 
+/*
+ * Semantic palette in OKLCH. Light values live in `@theme`, dark ones override
+ * the same custom properties for `prefers-color-scheme: dark`, so components
+ * use one utility (`bg-panel`, `text-ink-muted`) in both themes.
+ */
 @theme {
   --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
+
+  --color-canvas: oklch(0.985 0.004 285);
+  --color-panel: oklch(1 0 0);
+  --color-ink: oklch(0.22 0.015 285);
+  --color-ink-muted: oklch(0.48 0.02 285);
+  --color-line: oklch(0.9 0.008 285);
+
+  --color-accent: oklch(0.54 0.21 293);
+  --color-accent-strong: oklch(0.47 0.21 293);
+  --color-accent-soft: oklch(0.95 0.03 293);
+  --color-accent-line: oklch(0.85 0.06 293);
+  --color-on-accent: oklch(0.99 0.005 293);
+  --color-focus: oklch(0.54 0.21 293);
+
+  --color-danger: oklch(0.5 0.2 25);
+  --color-danger-soft: oklch(0.95 0.03 25);
 }
 
 @layer base {
@@ -13,7 +34,31 @@
     color-scheme: light dark;
   }
 
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-canvas: oklch(0.17 0.008 285);
+      --color-panel: oklch(0.22 0.012 285);
+      --color-ink: oklch(0.96 0.004 285);
+      --color-ink-muted: oklch(0.73 0.015 285);
+      --color-line: oklch(0.33 0.014 285);
+
+      --color-accent: oklch(0.73 0.16 293);
+      --color-accent-strong: oklch(0.8 0.14 293);
+      --color-accent-soft: oklch(0.3 0.06 293);
+      --color-accent-line: oklch(0.4 0.08 293);
+      --color-on-accent: oklch(0.18 0.02 293);
+      --color-focus: oklch(0.73 0.16 293);
+
+      --color-danger: oklch(0.72 0.16 25);
+      --color-danger-soft: oklch(0.28 0.06 25);
+    }
+  }
+
   body {
-    @apply bg-white text-neutral-600 antialiased dark:bg-neutral-900 dark:text-neutral-400;
+    @apply bg-canvas text-ink-muted antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent-soft text-ink;
   }
 }

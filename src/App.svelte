@@ -76,6 +76,10 @@
 
   const busy = $derived(archiveBusy || pending > 0);
 
+  // File inputs share one look: native picker button themed via `file:` variants.
+  const fileInputClass =
+    "rounded-lg text-sm text-ink-muted outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-accent-line focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60";
+
   onDestroy(() => {
     destroyed = true;
     engine.dispose();
@@ -205,48 +209,46 @@
 
 <main class="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-6">
   <header class="flex flex-col gap-1">
-    <h1 class="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-      AI Photo Sorter
-    </h1>
-    <p class="text-sm opacity-70">MobileCLIP-B · инференс локально, файлы никуда не уходят</p>
+    <h1 class="text-2xl font-semibold tracking-tight text-ink">AI Photo Sorter</h1>
+    <p class="text-sm text-ink-muted">MobileCLIP-B · инференс локально, файлы никуда не уходят</p>
   </header>
 
   <label class="flex flex-col gap-2">
-    <span class="text-sm font-medium">Категории — по одной на строку</span>
-    <span class="text-xs opacity-60">
+    <span class="text-sm font-medium text-ink">Категории — по одной на строку</span>
+    <span class="text-xs text-ink-muted">
       только английский: текстовый энкодер MobileCLIP англоязычный, русские слова дают случайные
       результаты
     </span>
     <textarea
       bind:value={labelsText}
-      class="min-h-40 rounded-lg border border-black/10 bg-white/60 p-3 font-mono text-sm dark:border-white/15 dark:bg-white/5"
+      class="min-h-40 rounded-lg border border-line bg-panel p-3 font-mono text-sm text-ink transition outline-none focus-visible:border-accent-line focus-visible:ring-2 focus-visible:ring-focus"
     ></textarea>
   </label>
 
-  <div class="flex flex-col gap-3 rounded-xl border border-black/10 p-4 dark:border-white/10">
+  <div class="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
     <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium">Отдельные фотографии</span>
+      <span class="text-sm font-medium text-ink">Отдельные фотографии</span>
       <input
         type="file"
         accept="image/*"
         multiple
-        class="text-sm"
+        class={fileInputClass}
         disabled={busy}
         onchange={handleFileInput}
       />
     </div>
 
-    <div class="flex flex-col gap-1 border-t border-black/10 pt-3 dark:border-white/10">
+    <div class="flex flex-col gap-1 border-t border-line pt-3">
       <label class="flex flex-col gap-1">
-        <span class="text-sm font-medium">Или ZIP-архив</span>
-        <span class="text-xs opacity-60">
+        <span class="text-sm font-medium text-ink">Или ZIP-архив</span>
+        <span class="text-xs text-ink-muted">
           Фото пройдут классификацию и вернутся в новом архиве, разложенные по папкам категорий. В
           корень добавится report.csv с результатами.
         </span>
         <input
           type="file"
           accept=".zip,application/zip"
-          class="text-sm"
+          class={fileInputClass}
           disabled={busy}
           onchange={handleArchiveInput}
         />
@@ -254,23 +256,23 @@
     </div>
 
     {#if pending > 0}
-      <span class="text-sm opacity-70" aria-live="polite">в работе: {pending}</span>
+      <span class="text-sm text-ink-muted" aria-live="polite">в работе: {pending}</span>
     {/if}
   </div>
 
   {#if archiveProgress}
     <div class="flex flex-col gap-1">
       <div
-        class="h-1 w-full overflow-hidden rounded bg-black/10 dark:bg-white/10"
+        class="h-1 w-full overflow-hidden rounded bg-line"
         role="progressbar"
         aria-label="Сортировка архива"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={archivePercent}
       >
-        <div class="h-full bg-violet-500" style:width={`${archivePercent}%`}></div>
+        <div class="h-full bg-accent" style:width={`${archivePercent}%`}></div>
       </div>
-      <span class="text-xs opacity-60">
+      <span class="text-xs text-ink-muted">
         {archiveProgress.done} / {archiveProgress.total || "…"}
         · {archiveProgress.current || "читаю архив…"}
       </span>
@@ -279,18 +281,18 @@
 
   {#if archiveResult}
     <div
-      class="flex flex-col gap-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-4"
+      class="flex flex-col gap-2 rounded-xl border border-accent-line bg-accent-soft p-4"
       aria-live="polite"
     >
       <div class="flex flex-wrap items-center gap-3">
         <a
           href={archiveResult.url}
           download={archiveResult.name}
-          class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+          class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent transition outline-none hover:bg-accent-strong focus-visible:ring-2 focus-visible:ring-focus"
         >
           Скачать {archiveResult.name}
         </a>
-        <span class="text-xs opacity-70">
+        <span class="text-xs text-ink-muted">
           отсортировано: {archiveResult.counts.sorted} · пропущено: {archiveResult.counts.skipped} · ошибок:
           {archiveResult.counts.errors}
         </span>
@@ -298,11 +300,11 @@
 
       {#if archiveResult.failures.length > 0}
         <details class="text-xs">
-          <summary class="cursor-pointer opacity-70">Файлы с ошибками</summary>
+          <summary class="cursor-pointer text-ink-muted">Файлы с ошибками</summary>
           <ul class="mt-2 flex flex-col gap-1">
-            {#each archiveResult.failures as issue}
+            {#each archiveResult.failures as issue (issue.source)}
               <li class="break-all">
-                <span class="font-medium">{issue.source}</span> — {issue.error}
+                <span class="font-medium text-ink">{issue.source}</span> — {issue.error}
               </li>
             {/each}
           </ul>
@@ -314,36 +316,34 @@
   {#if loadingModel}
     <div class="flex flex-col gap-1">
       <div
-        class="h-1 w-full overflow-hidden rounded bg-black/10 dark:bg-white/10"
+        class="h-1 w-full overflow-hidden rounded bg-line"
         role="progressbar"
         aria-label="Загрузка модели"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
       >
-        <div class="h-full bg-violet-500" style:width={`${percent}%`}></div>
+        <div class="h-full bg-accent" style:width={`${percent}%`}></div>
       </div>
-      <span class="text-xs opacity-60">модель: {percent}%</span>
+      <span class="text-xs text-ink-muted">модель: {percent}%</span>
     </div>
   {/if}
 
   {#if failure}
-    <p class="rounded-lg bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400" role="alert">
+    <p class="rounded-lg bg-danger-soft p-3 text-sm text-danger" role="alert">
       {failure}
     </p>
   {/if}
 
   {#if items.length === 0 && pending === 0 && !failure && !archiveResult && !archiveProgress}
-    <p class="text-sm opacity-60">
+    <p class="text-sm text-ink-muted">
       Выберите фотографии или ZIP-архив — при первом запуске модель скачает ~145 МБ.
     </p>
   {/if}
 
   <ul class="flex flex-col gap-3">
     {#each items as item (item.id)}
-      <li
-        class="flex items-center gap-4 rounded-xl border border-black/10 p-3 dark:border-white/10"
-      >
+      <li class="flex items-center gap-4 rounded-xl border border-line bg-panel p-3">
         <img
           src={item.url}
           alt=""
@@ -352,11 +352,11 @@
           decoding="async"
         />
         <div class="flex min-w-0 flex-1 flex-col gap-1">
-          <span class="truncate text-sm font-medium">{item.name}</span>
-          <span class="text-xs opacity-60">{item.ms} мс</span>
+          <span class="truncate text-sm font-medium text-ink">{item.name}</span>
+          <span class="text-xs text-ink-muted">{item.ms} мс</span>
           <div class="flex flex-wrap gap-2">
             {#each item.scores as score (score.label)}
-              <span class="rounded-full bg-violet-500/10 px-2 py-0.5 text-xs">
+              <span class="rounded-full bg-accent-soft px-2 py-0.5 text-xs text-ink">
                 {score.label} · {Math.round(score.score * 100)}%
               </span>
             {/each}
