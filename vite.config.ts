@@ -2,17 +2,11 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
-// import { paraglideVitePlugin } from '@inlang/paraglide-js';
 
 export default defineConfig({
   plugins: [
     tailwindcss(),
     svelte(),
-    // paraglideVitePlugin({
-    //   outdir: './src/lib/paraglide',
-    //   project: './project.inlang',
-    //   strategy: ['localStorage', 'preferredLanguage', 'baseLocale'],
-    // }),
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
@@ -37,16 +31,21 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,wasm}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         maximumFileSizeToCacheInBytes: 25 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            // 26.9 MB ORT runtime: too big to precache, cache it on first use instead.
+            urlPattern: /\.wasm$/,
+            handler: "CacheFirst",
+            options: { cacheName: "ort-wasm" },
+          },
+        ],
       },
     }),
   ],
   worker: {
     format: "es",
-  },
-  resolve: {
-    tsconfigPaths: true,
   },
   server: {
     open: false,

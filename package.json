@@ -20,17 +20,16 @@
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.2",
-    "@tailwindcss/vite": "4.3.5",
+    "@zip.js/zip.js": "2.25.0",
     "bits-ui": "2.21.0",
     "client-zip": "2.5.1",
     "idb": "8.0.4",
     "phosphor-svelte": "3.1.1",
-    "tailwind-variants": "4.0.2",
-    "tailwindcss": "4.3.5",
-    "vite-plugin-pwa": "2.0.0"
+    "tailwind-variants": "4.0.2"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@tailwindcss/vite": "4.3.5",
     "@tsconfig/svelte": "5.0.9",
     "@types/bun": "1.4.4",
     "@types/node": "26.6.6",
@@ -39,7 +38,9 @@
     "oxlint-tsgolint": "7.0.2006",
     "svelte": "5.57.3",
     "svelte-check": "4.7.8",
+    "tailwindcss": "4.3.5",
     "typescript": "6.0.3",
-    "vite": "8.3.8"
+    "vite": "8.3.8",
+    "vite-plugin-pwa": "2.0.0"
   }
 }

@@ -27,6 +27,12 @@
   },
   "overrides": [
     {
+      "files": ["src/lib/model/engine.ts", "src/lib/model/worker.ts"],
+      "rules": {
+        "unicorn/require-post-message-target-origin": "off"
+      }
+    },
+    {
       "files": [
         "scripts/**/*.{ts,js,mjs}",
         "**/scripts/**/*.{ts,js,mjs}",

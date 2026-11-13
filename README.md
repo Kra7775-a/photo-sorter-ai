@@ -1,47 +1,89 @@
-# Svelte + TS + Vite
+# AI Photo Sorter
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Браузерный сортировщик фотографий по категориям. Модель работает локально: изображения
+не покидают устройство, бэкенда нет.
 
-## Recommended IDE Setup
+## Стек
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+- Svelte 5 (runes) + TypeScript + Vite
+- Tailwind CSS v4
+- [Transformers.js](https://github.com/huggingface/transformers.js) + ONNX Runtime Web (WASM)
+- MobileCLIP-B `Xenova/mobileclip_b`, int8 (~145 МБ)
+- Web Worker для инференса
++- ZIP без сервера: `@zip.js/zip.js` читает архив, `client-zip` собирает новый
+- PWA (vite-plugin-pwa): офлайн-оболочка, установка на устройство
+- Bun, oxlint, oxfmt, svelte-check, `bun test`
 
-## Need an official Svelte framework?
+## Запуск
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
-
-## Technical considerations
-
-**Why use this over SvelteKit?**
-
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+```bash
+bun install
+bun run dev        # http://localhost:3000
+bun run build      # production-сборка в dist/
+bun run preview    # локальный просмотр сборки
+bun run test:coverage  # покрытие (text + coverage/lcov.info)
 ```
+
+Полная проверка перед коммитом:
+
+```bash
+bun run validate   # format:check + lint + typecheck + check + test + build
+```
+
+Bun считает покрытие только по модулям, которые импортируют тесты. `worker.ts`, Svelte-компоненты
+и entry points исключены в `bunfig.toml`; проценты в отчёте относятся к `engine.ts`,
+`ranking.ts` и `archive/*`, а не ко всему приложению.
+
+## Как это работает
+
+1. Пользователь задаёт категории (по одной на строку, только по-английски).
+2. Worker лениво загружает две башни MobileCLIP: текстовую и визуальную.
+3. Метки превращаются в промпты `a photo of <label>` и кэшируются по набору.
+4. Эмбеддинг фото сравнивается с эмбеддингами меток, softmax даёт вероятности,
+   UI показывает топ-3.
+5. Первый запуск скачивает ~145 МБ (кэшируется браузером), дальше инференс занимает
+   сотни миллисекунд на WASM.
+
+### ZIP-архивы
+
+Можно выбрать не отдельные фото, а `.zip`. Архив читается по одному файлу за раз
+(без распаковки всего в память), каждое изображение классифицируется, после чего
+собирается новый архив `*-sorted.zip`:
+
+- фото раскладываются по папкам с названием категории (`people/`, `nature/`, …);
+- берётся только имя файла, исходные каталоги архива не сохраняются;
+- одинаковые имена получают суффикс ` (2)`, ` (3)`;
+- `report.csv` в корне содержит источник, категорию, уверенность и статус
+  (`sorted` / `skipped` / `error`);
+- не-изображения и файлы с ошибкой декодирования не копируются, но попадают в отчёт;
+- HEIC/TIFF пропускаются: браузер не умеет их декодировать.
+
+### Почему английские метки
+
+Текстовый энкодер MobileCLIP англоязычный. Русские слова дают почти случайные результаты
+(фото кота уходит в «природу» вместо «животных»). Шаблон `a photo of ` заметно улучшает
+короткие метки вроде `cat`.
+
+## Структура
+
+```
+src/
+  App.svelte              UI и очередь файлов
+  app.css                 Tailwind + базовые токены
+  main.ts                 точка входа
+  lib/model/
+    protocol.ts           типы сообщений main ↔ worker
+    engine.ts             клиент worker'а, сопоставление запросов по id
+    worker.ts             загрузка модели, эмбеддинги, softmax
+    ranking.ts            чистая сортировка/срез результатов + тесты
+  lib/archive/
+    naming.ts             безопасные имена, дедупликация, report.csv + тесты
+    sort.ts               чтение ZIP → классификация → новый ZIP + тесты
+```
+
+## Деплой
+
+Приложение статическое, подходит Cloudflare Pages или Vercel. Модель на этих площадках
+не хостится (у Cloudflare Pages лимит 25 МиБ на файл), она скачивается с Hugging Face Hub
+и кэшируется в браузере. Если нужен свой CDN, положите файлы модели в R2/S3 и переопределите
+`env.remoteHost` в worker'е.

@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# PWA dev build
+dev-dist
+
+# Test coverage
+coverage

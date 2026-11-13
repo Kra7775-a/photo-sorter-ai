@@ -1,2 +1,17 @@
 [install]
 exact = true
+
+[test]
+# Bun only instruments modules that tests import. These paths are not unit-testable
+# in Bun (Svelte components, worker/WASM entry point, configs), so keep them out.
+coverageSkipTestFiles = true
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
+coveragePathIgnorePatterns = [
+  "src/main.ts",
+  "src/**/*.svelte",
+  "src/lib/model/worker.ts",
+  "vite.config.ts",
+  "svelte.config.js",
+]
+coverageThreshold = { lines = 0.9, functions = 0.9 }
