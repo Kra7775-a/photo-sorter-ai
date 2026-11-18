@@ -93,6 +93,11 @@
     }
   });
 
+  /**
+   * Processes a list of files for classification against current labels.
+   * @param files - Array of files to classify.
+   * @returns Promise that resolves when all files are processed.
+   */
   async function handleFiles(files: readonly File[]): Promise<void> {
     if (files.length === 0) {
       return;
@@ -131,6 +136,10 @@
     }
   }
 
+  /**
+   * Handles file input change events for individual photo uploads.
+   * @param event - The input change event.
+   */
   function handleFileInput(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
     const files = Array.from(input.files ?? []);
@@ -141,6 +150,11 @@
     void handleFiles(files);
   }
 
+  /**
+   * Handles the processing of a ZIP archive, including classification and reporting.
+   * @param file - The ZIP file to process.
+   * @returns Promise that resolves when the archive processing is complete.
+   */
   async function handleArchive(file: File): Promise<void> {
     if (archiveBusy) {
       return;
@@ -194,6 +208,10 @@
     }
   }
 
+  /**
+   * Handles file input change events for ZIP archive uploads.
+   * @param event - The input change event.
+   */
   function handleArchiveInput(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
