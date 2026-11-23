@@ -26,7 +26,8 @@ function assertKey(key: Uint8Array): void {
 /** Blobs arrive from storage, so the scheme is validated as untrusted input. */
 function assertScheme(scheme: string): void {
   if (scheme !== SCHEME) {
-    throw new Error(`unsupported scheme: ${scheme}`);
+    // Fixed message: never echo untrusted input back into error text.
+    throw new Error("unsupported blob scheme");
   }
 }
 

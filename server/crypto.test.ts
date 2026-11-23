@@ -16,6 +16,13 @@ function tamper(b64: string): string {
   return bytes.toString("base64");
 }
 
+/** Flips the last byte of a base64 payload (the auth tag for ciphertext). */
+function tamperLast(b64: string): string {
+  const bytes = Buffer.from(b64, "base64");
+  bytes[bytes.length - 1] ^= 0xff;
+  return bytes.toString("base64");
+}
+
 describe("generateDataKey", () => {
   test("returns 32 random bytes", () => {
     const generated = generateDataKey();
@@ -44,6 +51,12 @@ describe("seal/open", () => {
   test("open throws on mutated ciphertext", () => {
     const blob = seal(key, plaintext, aad);
     const mutated: SealedBlob = { ...blob, ct: tamper(blob.ct) };
+    expect(() => open(key, mutated, aad)).toThrow();
+  });
+
+  test("open throws when the auth tag (last ciphertext byte) is flipped", () => {
+    const blob = seal(key, plaintext, aad);
+    const mutated: SealedBlob = { ...blob, ct: tamperLast(blob.ct) };
     expect(() => open(key, mutated, aad)).toThrow();
   });
 
@@ -92,6 +105,12 @@ describe("seal/open", () => {
     const shortNonce: SealedBlob = { ...blob, nonce: Buffer.alloc(8).toString("base64") };
     expect(() => open(key, shortNonce, aad)).toThrow();
   });
+
+  test("open rejects a nonce longer than 12 bytes", () => {
+    const blob = seal(key, plaintext, aad);
+    const longNonce: SealedBlob = { ...blob, nonce: Buffer.alloc(16).toString("base64") };
+    expect(() => open(key, longNonce, aad)).toThrow();
+  });
 });
 
 describe("wrapKey/unwrapKey", () => {
@@ -105,6 +124,18 @@ describe("wrapKey/unwrapKey", () => {
   test("unwrapKey throws with a different master key", () => {
     const wrapped = wrapKey(master, key);
     expect(() => unwrapKey(otherKey, wrapped)).toThrow();
+  });
+
+  test("unwrapKey throws on mutated ciphertext", () => {
+    const wrapped = wrapKey(master, key);
+    const mutated: SealedBlob = { ...wrapped, ct: tamper(wrapped.ct) };
+    expect(() => unwrapKey(master, mutated)).toThrow();
+  });
+
+  test("unwrapKey throws on mutated nonce", () => {
+    const wrapped = wrapKey(master, key);
+    const mutated: SealedBlob = { ...wrapped, nonce: tamper(wrapped.nonce) };
+    expect(() => unwrapKey(master, mutated)).toThrow();
   });
 
   test("unwrapKey rejects a master key that is not 32 bytes", () => {
