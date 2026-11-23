@@ -85,7 +85,8 @@
 
 ## Мои решения (можно оспорить)
 
-- **Hono**, не Elysia: стандартный fetch-handler, родные примеры better-auth, Bun-native.
+- **Elysia** (выбор пользователя: хочет попробовать; Bun-native, типизированные роуты).
+  Каркас Task 1 landed на Hono и переезжает на Elysia в Task 3 отдельным коммитом.
 - **Вход: email + пароль** на старте; верификация email выключена (нет SMTP-зависимости);
   OAuth/passkeys — позже. Аккаунт = email, это единственные открытые персональные данные.
 - **Один пакет**, каталог `server/`, без workspaces: скрипты `dev:server`, `start`, `keygen`.
@@ -106,7 +107,7 @@
 
 ### Сервер (`server/`)
 
-- `server/index.ts` — Hono: `/api/auth/*` → better-auth, остальное — API синхронизации,
+- `server/index.ts` — Elysia: `/api/auth/*` → better-auth, остальное — API синхронизации,
   в продакшене отдаёт `dist/`.
 - `server/db.ts` — `bun:sqlite`, миграции списком SQL-строк с версией.
 - `server/crypto.ts` — конверт: мастер-ключ `SYNC_MASTER_KEY` (32 байта, base64, env);
