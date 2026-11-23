@@ -43,8 +43,8 @@ export function openDb(path: string): Database {
 export function migrate(db: Database): void {
   const row = db.query("PRAGMA user_version").get() as { user_version: number };
   const apply = db.transaction((sql: string, version: number) => {
-    db.exec(sql);
-    db.exec(`PRAGMA user_version = ${version}`);
+    db.run(sql);
+    db.run(`PRAGMA user_version = ${version}`);
   });
   for (let i = row.user_version; i < migrations.length; i++) {
     apply(migrations[i], i + 1);
