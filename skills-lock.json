@@ -1,6 +1,13 @@
 {
   "version": 2,
   "skills": {
+    "elysiajs": {
+      "source": "elysiajs/skills",
+      "commit": "1466d85aa4f2a0fec91f71311e65bbfa91aa7dc5",
+      "sourceType": "github",
+      "skillPath": "elysia/SKILL.md",
+      "computedHash": "a6c0405d2b902e2fe6227d612812d376f5ebb568ea55ec28634f92abf16485c4"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
