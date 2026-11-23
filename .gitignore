@@ -29,6 +29,10 @@ dev-dist
 # Test coverage
 coverage
 
+# Mutation testing artifacts
+.stryker-tmp
+reports
+
 # Runtime sync database (never commit user data)
 sync.db
 sync.db-journal
