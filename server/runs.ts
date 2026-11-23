@@ -63,11 +63,15 @@ function jsonError(status: number, error: string): Response {
   });
 }
 
-function toMeta(row: RunRow): RunMeta {
+function toMeta(deps: RunDeps, userId: string, row: RunRow): RunMeta {
+  const key = dataKey(deps, userId);
+  const nameBlob = JSON.parse(row.source_name) as SealedBlob;
   return {
     id: row.id,
     clientRunId: row.client_run_id,
-    sourceName: row.source_name,
+    sourceName: Buffer.from(open(key, nameBlob, `${userId}|${row.id}|name|server-v1`)).toString(
+      "utf8",
+    ),
     createdAt: row.created_at,
     counts: JSON.parse(row.counts_json) as RunCounts,
   };
@@ -159,6 +163,11 @@ export function registerRunRoutes(app: Elysia, deps: RunDeps): void {
 
     const id = randomUUID();
     const key = dataKey(deps, session.userId);
+    const name = seal(
+      key,
+      Buffer.from(input.sourceName, "utf8"),
+      `${session.userId}|${id}|name|server-v1`,
+    );
     const payload = seal(
       key,
       Buffer.from(JSON.stringify(input.rows), "utf8"),
@@ -174,7 +183,7 @@ export function registerRunRoutes(app: Elysia, deps: RunDeps): void {
         id,
         session.userId,
         input.clientRunId,
-        input.sourceName,
+        JSON.stringify(name),
         input.createdAt,
         JSON.stringify(input.counts),
         JSON.stringify(payload),
@@ -199,7 +208,7 @@ export function registerRunRoutes(app: Elysia, deps: RunDeps): void {
         "SELECT * FROM sort_runs WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC",
       )
       .all(session.userId, Number.isFinite(since) ? since : 0) as RunRow[];
-    return { runs: rows.map(toMeta) };
+    return { runs: rows.map((row) => toMeta(deps, session.userId, row)) };
   });
 
   app.get("/api/runs/:id", async ({ request, params }) => {
@@ -216,7 +225,7 @@ export function registerRunRoutes(app: Elysia, deps: RunDeps): void {
     const rows = JSON.parse(
       Buffer.from(open(key, blob, `${session.userId}|${row.id}|server-v1`)).toString("utf8"),
     ) as ReportRow[];
-    return { ...toMeta(row), rows };
+    return { ...toMeta(deps, session.userId, row), rows };
   });
 
   app.delete("/api/runs/:id", async ({ request, params }) => {

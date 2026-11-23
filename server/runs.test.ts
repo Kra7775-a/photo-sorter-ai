@@ -106,10 +106,12 @@ describe("sort-run API", () => {
     expect(res.status).toBe(201);
     const { id } = (await res.json()) as { id: string };
 
-    const raw = api.db.query("SELECT payload FROM sort_runs WHERE id = ?").get(id) as {
+    const raw = api.db.query("SELECT payload, source_name FROM sort_runs WHERE id = ?").get(id) as {
       payload: string;
+      source_name: string;
     };
     expect(raw.payload).not.toContain(run.rows[0].source);
+    expect(raw.source_name).not.toContain(run.sourceName);
 
     const list = await fetch(`${api.baseUrl}/api/runs`, { headers: { cookie: cookieA } });
     const listed = (await list.json()) as { runs: Record<string, unknown>[] };
