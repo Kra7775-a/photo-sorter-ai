@@ -28,3 +28,9 @@ dev-dist
 
 # Test coverage
 coverage
+
+# Runtime sync database (never commit user data)
+sync.db
+sync.db-journal
+sync.db-wal
+sync.db-shm

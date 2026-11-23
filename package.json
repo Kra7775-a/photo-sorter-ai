@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:server": "bun --watch server/index.ts",
-    "start": "bun server/index.ts",
+    "dev:server": "bun --watch server/main.ts",
+    "start": "bun server/main.ts",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json",
@@ -26,7 +26,7 @@
     "better-auth": "1.7.27",
     "bits-ui": "2.21.0",
     "client-zip": "2.5.1",
-    "hono": "4.13.21",
+    "elysia": "1.4.32",
     "idb": "8.0.4",
     "phosphor-svelte": "3.1.1",
     "tailwind-variants": "4.0.2"

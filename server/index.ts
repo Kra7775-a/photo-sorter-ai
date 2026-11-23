@@ -1,22 +1,14 @@
 import type { Database } from "bun:sqlite";
 
-import { Hono } from "hono";
+import { Elysia } from "elysia";
 
-import { loadConfig, type Config } from "./config.ts";
-import { migrate, openDb } from "./db.ts";
+import type { Config } from "./config.ts";
 
 /** Builds the API app; deps are explicit so tests never need env secrets. */
-export function createApp(_deps: { db: Database; config: Config }): Hono {
-  const app = new Hono();
-  app.get("/api/health", (c) => c.json({ status: "ok" }));
+export function createApp(_deps: { db: Database; config: Config }): Elysia {
+  const app: Elysia = new Elysia();
+  // Route registration mutates the instance; keep the plain Elysia type so
+  // later tasks can extend the app without fighting chained generic types.
+  app.get("/api/health", () => ({ status: "ok" }));
   return app;
-}
-
-if (import.meta.main) {
-  const config = loadConfig(process.env);
-  const db = openDb(config.dbPath);
-  migrate(db);
-  const app = createApp({ db, config });
-  Bun.serve({ port: config.port, fetch: app.fetch });
-  console.info(`Listening on ${config.baseUrl}`);
 }
