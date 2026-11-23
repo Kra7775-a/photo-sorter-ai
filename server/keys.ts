@@ -2,6 +2,11 @@ import type { Database } from "bun:sqlite";
 
 import { generateDataKey, unwrapKey, wrapKey, type SealedBlob } from "./crypto.ts";
 
+/** Generates a canonical base64 master key (32 random bytes) for SYNC_MASTER_KEY. */
+export function generateMasterKey(): string {
+  return Buffer.from(generateDataKey()).toString("base64");
+}
+
 /** Lazily creates a per-user data key wrapped by the master key. */
 export function getDataKey(db: Database, masterKey: Uint8Array, userId: string): Uint8Array {
   const row = db

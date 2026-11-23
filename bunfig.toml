@@ -11,6 +11,8 @@ coveragePathIgnorePatterns = [
   "src/main.ts",
   "src/**/*.svelte",
   "src/lib/model/worker.ts",
+  "server/index.ts",
+  "server/main.ts",
   "vite.config.ts",
   "svelte.config.js",
 ]
