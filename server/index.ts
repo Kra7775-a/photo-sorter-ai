@@ -6,6 +6,7 @@ import type { Auth } from "./auth.ts";
 import { createGetSession } from "./auth.ts";
 import type { Config } from "./config.ts";
 import { registerRunRoutes } from "./runs.ts";
+import { registerSettingsRoutes } from "./settings.ts";
 
 export type AppDeps = { db: Database; config: Config; auth: Auth };
 
@@ -18,10 +19,8 @@ export function createApp(deps: AppDeps): Elysia {
   // Catch-all keeps the full URL so better-auth (basePath /api/auth) sees
   // the original request, including method, headers and body.
   app.all("/api/auth/*", ({ request }) => deps.auth.handler(request));
-  registerRunRoutes(app, {
-    db: deps.db,
-    config: deps.config,
-    getSession: createGetSession(deps.auth),
-  });
+  const getSession = createGetSession(deps.auth);
+  registerRunRoutes(app, { db: deps.db, config: deps.config, getSession });
+  registerSettingsRoutes(app, { db: deps.db, config: deps.config, getSession });
   return app;
 }

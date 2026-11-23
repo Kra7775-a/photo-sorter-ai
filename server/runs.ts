@@ -5,7 +5,8 @@ import type { Elysia } from "elysia";
 
 import type { GetSession } from "./auth.ts";
 import type { Config } from "./config.ts";
-import { open, seal, unwrapKey, wrapKey, generateDataKey, type SealedBlob } from "./crypto.ts";
+import { open, seal, type SealedBlob } from "./crypto.ts";
+import { getDataKey } from "./keys.ts";
 
 /** Structural copy of ReportRow from src/lib/archive/naming.ts (server must not import src/). */
 export type ReportRow = {
@@ -64,7 +65,7 @@ function jsonError(status: number, error: string): Response {
 }
 
 function toMeta(deps: RunDeps, userId: string, row: RunRow): RunMeta {
-  const key = dataKey(deps, userId);
+  const key = getDataKey(deps.db, deps.config.masterKey, userId);
   const nameBlob = JSON.parse(row.source_name) as SealedBlob;
   return {
     id: row.id,
@@ -101,22 +102,6 @@ function validBody(value: unknown): value is CreateRunBody {
     return false;
   }
   return Array.isArray(body.rows);
-}
-
-/** Lazily creates a per-user data key wrapped by the master key. */
-function dataKey(deps: RunDeps, userId: string): Uint8Array {
-  const row = deps.db
-    .query("SELECT wrapped_key, key_version FROM user_keys WHERE user_id = ?")
-    .get(userId) as { wrapped_key: string; key_version: number } | undefined;
-  if (row) {
-    return unwrapKey(deps.config.masterKey, JSON.parse(row.wrapped_key) as SealedBlob);
-  }
-  const key = generateDataKey();
-  const wrapped = wrapKey(deps.config.masterKey, key);
-  deps.db
-    .query("INSERT INTO user_keys (user_id, wrapped_key, key_version) VALUES (?, ?, ?)")
-    .run(userId, JSON.stringify(wrapped), wrapped.keyVersion);
-  return key;
 }
 
 function findRun(db: Database, id: string, userId: string): RunRow | undefined {
@@ -162,7 +147,7 @@ export function registerRunRoutes(app: Elysia, deps: RunDeps): void {
     }
 
     const id = randomUUID();
-    const key = dataKey(deps, session.userId);
+    const key = getDataKey(deps.db, deps.config.masterKey, session.userId);
     const name = seal(
       key,
       Buffer.from(input.sourceName, "utf8"),
@@ -220,7 +205,7 @@ export function registerRunRoutes(app: Elysia, deps: RunDeps): void {
     if (!row) {
       return jsonError(404, "not_found");
     }
-    const key = dataKey(deps, session.userId);
+    const key = getDataKey(deps.db, deps.config.masterKey, session.userId);
     const blob = JSON.parse(row.payload) as SealedBlob;
     const rows = JSON.parse(
       Buffer.from(open(key, blob, `${session.userId}|${row.id}|server-v1`)).toString("utf8"),
