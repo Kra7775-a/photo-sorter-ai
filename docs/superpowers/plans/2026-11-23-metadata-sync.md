@@ -4,9 +4,9 @@
 
 **Goal:** Аккаунты и opt-in синхронизация метаданных сортировок (не фото) между устройствами, с шифрованием at rest, в облаке и self-host.
 
-**Architecture:** Bun-сервер (`server/`, Hono + better-auth + `bun:sqlite`) отдаёт статику и `/api`; отчёт каждого прогона хранится одним AES-256-GCM-блобом (конверт: мастер-ключ из env, per-user ключ данных). Клиент остаётся offline-first: IndexedDB + outbox, синхронизация только после явного включения и входа.
+**Architecture:** Bun-сервер (`server/`, Elysia + better-auth + `bun:sqlite`) отдаёт статику и `/api`; отчёт каждого прогона хранится одним AES-256-GCM-блобом (конверт: мастер-ключ из env, per-user ключ данных). Клиент остаётся offline-first: IndexedDB + outbox, синхронизация только после явного включения и входа.
 
-**Tech Stack:** Bun, Hono, better-auth (`database: new Database()` из `bun:sqlite`), `node:crypto` (aes-256-gcm), Svelte 5 runes, Tailwind v4 токены, `bun:test`.
+**Tech Stack:** Bun, Elysia, better-auth (`database: new Database()` из `bun:sqlite`), `node:crypto` (aes-256-gcm), Svelte 5 runes, Tailwind v4 токены, `bun:test`.
 
 **Spec:** `docs/superpowers/specs/2026-11-23-metadata-sync-design.md`
 
@@ -33,6 +33,10 @@
 ---
 
 ### Task 1: Каркас сервера, конфиг и миграции
+
+> Примечание: каркас уже landed на Hono (commit 32bb8d5). По решению пользователя сервер
+> переезжает на **Elysia**; замена выполняется первым шагом Task 3 (отдельный коммит
+> `refactor: swap hono for elysia`), конфиг/миграции/таблицы из этой задачи не меняются.
 
 **Files:**
 - Create: `server/config.ts`, `server/db.ts`, `server/index.ts`, `server/db.test.ts`
@@ -70,16 +74,17 @@
 - [ ] **Step 4:** `bun test server/crypto.test.ts` → PASS; `bun run validate`.
 - [ ] **Step 5:** commit `feat: envelope encryption for metadata blobs`.
 
-### Task 3: Аккаунты (better-auth)
+### Task 3: Аккаунты (better-auth) + переезд на Elysia
 
 **Files:**
 - Create: `server/auth.ts`, `server/auth.test.ts`
-- Modify: `server/index.ts` (монтирование `/api/auth/*`)
+- Modify: `server/index.ts` (swap Hono → Elysia, монтирование `/api/auth/*`), `package.json`
 
 **Interfaces:**
 - Consumes: `Config`, `Database` из Task 1.
-- Produces: `createAuth(db: Database, config: Config)` — `betterAuth({ database: db, secret: config.authSecret, baseURL: config.baseUrl, emailAndPassword: { enabled: true }, emailVerification: { enabled: false } })`; `createApp` принимает `auth` и отдаёт `auth.handler` на `/api/auth/*`; хелпер `getSession(req: Request): Promise<{ userId: string } | null>`.
+- Produces: `createApp(deps): Elysia` (заменяет Hono-версию из Task 1); `createAuth(db: Database, config: Config)` — `betterAuth({ database: db, secret: config.authSecret, baseURL: config.baseUrl, emailAndPassword: { enabled: true }, emailVerification: { enabled: false } })`; монтирование catch-all роутом `.all("/api/auth/*", ({ request }) => auth.handler(request))` (полный URL сохраняется, basePath better-auth = `/api/auth`); хелпер `getSession(req: Request): Promise<{ userId: string } | null>`.
 
+- [ ] **Step 0 (swap):** `bun remove hono && bun add elysia`; переписать `createApp`/health на Elysia (`new Elysia().get("/api/health", ...)`), `Bun.serve({ fetch: app.fetch })` в main-блоке; `bun test server/db.test.ts` + validate → green; commit `refactor: swap hono for elysia`.
 - [ ] **Step 1: failing test** (`Bun.serve({ port: 0, fetch: app.fetch })`): sign-up email+password → 200; sign-in → cookie сессии; `GET /api/auth/get-session` с cookie → email пользователя; неверный пароль → 401; без cookie → null-сессия.
 - [ ] **Step 2:** `bun test server/auth.test.ts` → FAIL.
 - [ ] **Step 3:** реализация `auth.ts`, монтирование в `createApp`.
@@ -94,7 +99,7 @@
 
 **Interfaces:**
 - Consumes: `getSession` (Task 3), `seal/open/wrapKey/unwrapKey/generateDataKey` (Task 2), таблицы Task 1.
-- Produces: `registerRunRoutes(app: Hono, deps: { db: Database; config: Config; getSession: GetSession }): void`.
+- Produces: `registerRunRoutes(app: Elysia, deps: { db: Database; config: Config; getSession: GetSession }): void`.
   `POST /api/runs` body `{ clientRunId: string; sourceName: string; createdAt: number; counts: { sorted: number; skipped: number; errors: number }; rows: ReportRow[] }` → 201 `{ id }`; повтор с тем же `clientRunId` → 200 тот же `id`.
   `GET /api/runs?since=<ms>` → `{ runs: Array<{ id, clientRunId, sourceName, createdAt, counts }> }` (без rows).
   `GET /api/runs/:id` → `{ ...meta, rows }` (расшифровано). `DELETE /api/runs/:id` → 204.
