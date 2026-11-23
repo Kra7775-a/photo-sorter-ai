@@ -1,0 +1,44 @@
+diff --git a/dist/BunResultParser.js b/dist/BunResultParser.js
+index a4ea66bf837665996c0d6ae76c9a7b34168cab0a..2d7e296b3aeb7fa88c0e7f1e0a63719bbe7de937 100644
+--- a/dist/BunResultParser.js
++++ b/dist/BunResultParser.js
+@@ -29,6 +29,24 @@ export class BunResultParser {
+         const lines = output.split('\n');
+         const parseResult = await this.parseTestLines(lines);
+         const duration = this.extractDuration(output);
++        // Bun 1.4 prints only a summary in non-TTY runs. With coverageAnalysis
++        // "all" one aggregate test result is enough for Stryker to score mutants.
++        if (parseResult.total === 0) {
++            // Bun 1.4 non-TTY output: "  5 pass\n  0 fail" on separate lines.
++            const passedLine = lines.find((l) => /^\s*(\d+)\s+pass\s*$/.test(l));
++            const failedLine = lines.find((l) => /^\s*(\d+)\s+fail\s*$/.test(l));
++            const passed = Number(passedLine?.match(/(\d+)/)?.[1] ?? 0);
++            const failed = Number(failedLine?.match(/(\d+)/)?.[1] ?? 0);
++            if (passedLine && failedLine) {
++                const status = failed > 0 ? 'failed' : 'passed';
++                const test = { name: 'bun test suite', status, duration };
++                parseResult.tests.push(test);
++                parseResult.passed = passed;
++                parseResult.failed = failed;
++                parseResult.total = passed + failed;
++                parseResult.failedTests = failed > 0 ? [test] : [];
++            }
++        }
+         this.log.debug(`Parsed ${parseResult.total} tests: ${parseResult.passed} passed, ${parseResult.failed} failed`);
+         return {
+             ...parseResult,
+diff --git a/dist/BunTestAdapter.js b/dist/BunTestAdapter.js
+index b2f145efd9fa834e4ddbc2d071f6d056df475bc7..68769e68f95b9c09bf4f7aa59be612bec82ec664 100644
+--- a/dist/BunTestAdapter.js
++++ b/dist/BunTestAdapter.js
+@@ -202,7 +202,9 @@ export class BunTestAdapter {
+         if (options.activeMutant !== undefined) {
+             env.__STRYKER_ACTIVE_MUTANT__ = options.activeMutant.toString();
+         }
+-        env.BUN_TEST_QUIET = '1';
++        // Bun 1.4 hides per-test lines whenever BUN_TEST_QUIET is present, even
++        // when set to "0"; the result parser needs those lines.
++        delete env.BUN_TEST_QUIET;
+         return env;
+     }
+     async buildBunArgs(testFiles, options) {
