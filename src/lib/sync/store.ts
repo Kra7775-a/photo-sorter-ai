@@ -15,6 +15,7 @@ type SyncDb = DBSchema & {
 export type SyncStore = {
   getRuns(): Promise<SyncRun[]>;
   putRuns(runs: SyncRun[]): Promise<void>;
+  deleteRuns(ids: string[]): Promise<void>;
   getSettings(): Promise<SyncSettings | null>;
   putSettings(settings: SyncSettings): Promise<void>;
   getOutbox(): Promise<string[]>;
@@ -42,6 +43,11 @@ export async function openStore(): Promise<SyncStore> {
     putRuns: async (runs) => {
       const tx = db.transaction("runs", "readwrite");
       await Promise.all(runs.map((run) => tx.store.put(run)));
+      await tx.done;
+    },
+    deleteRuns: async (ids) => {
+      const tx = db.transaction("runs", "readwrite");
+      await Promise.all(ids.map((id) => tx.store.delete(id)));
       await tx.done;
     },
     getSettings: async () => (await db.get("settings", SETTINGS_KEY)) ?? null,

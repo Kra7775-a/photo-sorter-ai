@@ -1,9 +1,17 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
+
+  import { createAuthClient } from "better-auth/client";
 
   import { sortArchive, type ArchiveProgress } from "./lib/archive/sort";
+  import AccountPanel from "./lib/components/AccountPanel.svelte";
+  import HistoryPanel from "./lib/components/HistoryPanel.svelte";
   import { createEngine } from "./lib/model/engine";
   import type { Score } from "./lib/model/protocol";
+  import { createSyncClient } from "./lib/sync/client";
+  import { createSyncController, type RunStatus, type SyncController } from "./lib/sync/controller";
+  import { openStore } from "./lib/sync/store";
+  import type { SyncRun, SyncSettings } from "./lib/sync/types";
 
   type Item = {
     id: number;
@@ -30,6 +38,10 @@
     "transport",
   ];
 
+  const SYNC_PREF_KEY = "photo-sorter-sync-enabled";
+  const authClient = createAuthClient();
+  const syncClient = createSyncClient({ baseUrl: window.location.origin });
+
   let labelsText = $state(DEFAULT_LABELS.join("\n"));
   let items = $state<Item[]>([]);
   let progress = $state<{ loaded: number; total: number } | null>(null);
@@ -38,6 +50,15 @@
   let archiveProgress = $state<ArchiveProgress | null>(null);
   let archiveResult = $state<ArchiveResult | null>(null);
   let archiveBusy = $state(false);
+  let sessionEmail = $state<string | null>(null);
+  let syncEnabled = $state(false);
+  let authBusy = $state(false);
+  let authError = $state<string | null>(null);
+  let syncNotice = $state<string | null>(null);
+  let runs = $state<SyncRun[]>([]);
+  let runStatuses = $state<Record<string, RunStatus>>({});
+  let historyBusy = $state(false);
+  let controller: SyncController | null = null;
   let counter = 0;
   let destroyed = false;
 
@@ -80,6 +101,66 @@
   const fileInputClass =
     "rounded-lg text-sm text-ink-muted outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-accent-line focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60";
 
+  onMount(() => {
+    void (async () => {
+      const store = await openStore();
+
+      if (destroyed) {
+        return;
+      }
+
+      controller = createSyncController({
+        store,
+        client: syncClient,
+        // The only gate for every sync-network call: session AND explicit opt-in.
+        canSync: () => sessionEmail !== null && syncEnabled,
+        onSnapshot: (snapshot) => {
+          if (destroyed) {
+            return;
+          }
+          runs = snapshot.runs;
+          runStatuses = snapshot.statuses;
+          syncNotice = snapshot.notice;
+        },
+        onSettings: (settings) => {
+          if (destroyed) {
+            return;
+          }
+          labelsText = settings.labels.join("\n");
+        },
+        onUnauthorized: () => {
+          sessionEmail = null;
+          syncEnabled = false;
+          localStorage.setItem(SYNC_PREF_KEY, "false");
+          authError = "Сессия истекла. Войдите в аккаунт снова.";
+          void controller?.stop();
+        },
+      });
+
+      syncEnabled = localStorage.getItem(SYNC_PREF_KEY) === "true";
+      await controller.load();
+
+      // With sync off there is not even an auth request: zero /api traffic.
+      if (syncEnabled) {
+        const { data } = await authClient.getSession();
+
+        if (destroyed) {
+          return;
+        }
+        sessionEmail = data?.user.email ?? null;
+
+        if (sessionEmail !== null) {
+          await controller.queueAll();
+          await controller.sync();
+        }
+      }
+    })();
+
+    return () => {
+      destroyed = true;
+    };
+  });
+
   onDestroy(() => {
     destroyed = true;
     engine.dispose();
@@ -92,6 +173,101 @@
       URL.revokeObjectURL(archiveResult.url);
     }
   });
+
+  function messageOf(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  async function signIn(email: string, password: string): Promise<void> {
+    authBusy = true;
+    authError = null;
+
+    try {
+      const result = await authClient.signIn.email({ email, password });
+
+      if (result.error) {
+        authError = result.error.message ?? "Не удалось войти.";
+        return;
+      }
+      sessionEmail = result.data?.user.email ?? null;
+    } catch (error) {
+      authError = messageOf(error);
+    } finally {
+      authBusy = false;
+    }
+  }
+
+  async function signUp(email: string, password: string): Promise<void> {
+    authBusy = true;
+    authError = null;
+
+    try {
+      const result = await authClient.signUp.email({
+        email,
+        password,
+        name: email.split("@")[0] ?? "user",
+      });
+
+      if (result.error) {
+        authError = result.error.message ?? "Не удалось зарегистрироваться.";
+        return;
+      }
+      sessionEmail = result.data?.user.email ?? null;
+    } catch (error) {
+      authError = messageOf(error);
+    } finally {
+      authBusy = false;
+    }
+  }
+
+  async function signOut(): Promise<void> {
+    authBusy = true;
+    authError = null;
+
+    try {
+      await authClient.signOut();
+    } catch (error) {
+      authError = messageOf(error);
+    } finally {
+      authBusy = false;
+    }
+
+    sessionEmail = null;
+    syncEnabled = false;
+    localStorage.setItem(SYNC_PREF_KEY, "false");
+    await controller?.stop();
+  }
+
+  async function setSync(next: boolean): Promise<void> {
+    syncEnabled = next;
+    localStorage.setItem(SYNC_PREF_KEY, String(next));
+
+    if (!next) {
+      await controller?.stop();
+      return;
+    }
+
+    if (sessionEmail !== null) {
+      await controller?.queueAll();
+      await controller?.sync();
+    }
+  }
+
+  function persistLabels(): void {
+    const next: SyncSettings = { labels: [...labels], updatedAt: Date.now() };
+
+    void controller?.updateSettings(next);
+  }
+
+  async function deleteRun(run: SyncRun): Promise<void> {
+    historyBusy = true;
+
+    try {
+      await controller?.deleteRun(run);
+    } finally {
+      historyBusy = false;
+    }
+  }
 
   /**
    * Processes a list of files for classification against current labels.
@@ -196,6 +372,18 @@
         name: result.fileName,
         url: URL.createObjectURL(result.blob),
       };
+
+      // The report always lives locally; only the outbox destination depends on
+      // being logged in with sync explicitly enabled.
+      const run: SyncRun = {
+        clientRunId: crypto.randomUUID(),
+        sourceName: result.fileName,
+        createdAt: Date.now(),
+        counts: result.counts,
+        rows: result.report,
+      };
+
+      await controller?.recordRun(run);
     } catch (error) {
       if (!destroyed) {
         const message = error instanceof Error ? error.message : String(error);
@@ -231,6 +419,21 @@
     <p class="text-sm text-ink-muted">MobileCLIP-B · инференс локально, файлы никуда не уходят</p>
   </header>
 
+  <AccountPanel
+    {syncEnabled}
+    busy={authBusy}
+    email={sessionEmail}
+    error={authError}
+    onSignIn={signIn}
+    onSignUp={signUp}
+    onSignOut={signOut}
+    onSyncChange={(next) => void setSync(next)}
+  />
+
+  {#if syncNotice}
+    <p class="rounded-lg bg-danger-soft p-3 text-sm text-danger" role="status">{syncNotice}</p>
+  {/if}
+
   <label class="flex flex-col gap-2">
     <span class="text-sm font-medium text-ink">Категории — по одной на строку</span>
     <span class="text-xs text-ink-muted">
@@ -239,6 +442,7 @@
     </span>
     <textarea
       bind:value={labelsText}
+      onchange={persistLabels}
       class="min-h-40 rounded-lg border border-line bg-panel p-3 font-mono text-sm text-ink transition outline-none focus-visible:border-accent-line focus-visible:ring-2 focus-visible:ring-focus"
     ></textarea>
   </label>
@@ -383,4 +587,11 @@
       </li>
     {/each}
   </ul>
+
+  <HistoryPanel
+    {runs}
+    statuses={runStatuses}
+    busy={historyBusy}
+    onDelete={(run) => deleteRun(run)}
+  />
 </main>
