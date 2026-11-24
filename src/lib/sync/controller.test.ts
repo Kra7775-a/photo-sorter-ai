@@ -94,6 +94,9 @@ function harness(initial: Partial<StoreState> = {}) {
     enable: () => {
       canSync = true;
     },
+    disable: () => {
+      canSync = false;
+    },
     unauthorizedCalls: () => unauthorizedCalls,
     last: (): SyncSnapshot => {
       const last = snapshots.at(-1);
@@ -255,5 +258,99 @@ describe("createSyncController", () => {
     expect(h.state.outbox).toEqual([]);
     expect(h.pushRun).not.toHaveBeenCalled();
     expect(h.last().statuses[run.clientRunId]).toBe("local");
+  });
+
+  test("a generic push error marks the run failed", async () => {
+    const h = harness();
+
+    h.pushRun.mockImplementation(async () => {
+      throw new Error("boom");
+    });
+    h.enable();
+    await h.controller.recordRun(run);
+
+    expect(h.last().notice).toBe("Не удалось синхронизировать данные.");
+    expect(h.last().statuses[run.clientRunId]).toBe("error");
+    expect(h.state.runs).toHaveLength(1);
+  });
+
+  test("a failed settings push is reported locally without losing labels", async () => {
+    const h = harness();
+
+    h.pushSettings.mockImplementation(async () => {
+      throw new Error("boom");
+    });
+    h.enable();
+    await h.controller.updateSettings({ labels: ["cats"], updatedAt: 100 });
+
+    expect(h.state.settings).toEqual({ labels: ["cats"], updatedAt: 100 });
+    expect(h.last().notice).toBe("Не удалось синхронизировать данные.");
+  });
+
+  test("queueAll marks local runs as pending only when sync is on", async () => {
+    const h = harness({ runs: [run, { ...run, clientRunId: "synced", serverId: "srv-9" }] });
+
+    await h.controller.load();
+    await h.controller.queueAll();
+    expect(h.state.outbox).toEqual([]);
+
+    h.enable();
+    await h.controller.queueAll();
+    expect(h.state.outbox).toEqual([run.clientRunId]);
+    expect(h.last().statuses[run.clientRunId]).toBe("pending");
+  });
+
+  test("sync stops immediately if the session drops mid-upload", async () => {
+    const h = harness({ runs: [run], outbox: [run.clientRunId] });
+
+    h.pushRun.mockImplementation(async () => {
+      h.disable();
+      return "srv-1";
+    });
+    h.enable();
+    await h.controller.load();
+    await h.controller.sync();
+
+    expect(h.state.runs[0]?.serverId).toBe("srv-1");
+    expect(h.pullRuns).not.toHaveBeenCalled();
+    expect(h.last().statuses[run.clientRunId]).toBe("synced");
+  });
+
+  test("stale outbox ids are dropped during sync", async () => {
+    const h = harness({ outbox: ["ghost"] });
+
+    h.enable();
+    await h.controller.load();
+    await h.controller.sync();
+
+    expect(h.state.outbox).toEqual([]);
+    expect(h.pushRun).not.toHaveBeenCalled();
+  });
+
+  test("sync stops before pulling settings if the session drops", async () => {
+    const h = harness();
+
+    h.pullRuns.mockImplementation(async () => {
+      h.disable();
+      return [];
+    });
+    h.enable();
+    await h.controller.sync();
+
+    expect(h.pullSettings).not.toHaveBeenCalled();
+  });
+
+  test("a failed pull is reported without dropping local runs", async () => {
+    const h = harness({ runs: [run] });
+
+    h.pullRuns.mockImplementation(async () => {
+      throw new Error("boom");
+    });
+    h.enable();
+    await h.controller.load();
+    await h.controller.sync();
+
+    expect(h.last().notice).toBe("Не удалось синхронизировать данные.");
+    expect(h.state.runs).toEqual([run]);
   });
 });

@@ -123,11 +123,8 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
   }
 
   async function updateSettings(incoming: SyncSettings): Promise<void> {
-    const merged = mergeSettings(settings, incoming);
-
-    if (merged === null) {
-      return;
-    }
+    // `incoming` is never null, so mergeSettings cannot return null here.
+    const merged = mergeSettings(settings, incoming) ?? incoming;
 
     settings = merged;
     await deps.store.putSettings(merged);
