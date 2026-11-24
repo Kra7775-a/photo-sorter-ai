@@ -23,6 +23,7 @@ bun run dev        # http://localhost:3000
 bun run build      # production-сборка в dist/
 bun run preview    # локальный просмотр сборки
 bun run test:coverage  # покрытие (text + coverage/lcov.info)
+bun run test:mutation  # мутационные тесты (Stryker + Bun, ~6 мин)
 ```
 
 Полная проверка перед коммитом:
@@ -32,8 +33,12 @@ bun run validate   # format:check + lint + typecheck + check + test + build
 ```
 
 Bun считает покрытие только по модулям, которые импортируют тесты. `worker.ts`, Svelte-компоненты
-и entry points исключены в `bunfig.toml`; проценты в отчёте относятся к `engine.ts`,
-`ranking.ts` и `archive/*`, а не ко всему приложению.
+и entry points исключены в `bunfig.toml`; проценты в отчёте относятся к модулям с тестами.
+
+Мутационные тесты запускаются через `bun run test:mutation`. Stryker использует неофициальный
+раннер `stryker-mutator-bun-runner`; локальный патч в `patches/` адаптирует его к Bun 1.4 (тот
+больше не печатает построчные результаты в не-TTY и не понимает старый формат вывода). Отчёт —
+`reports/mutation/mutation.html`, порог `break` в `stryker.conf.json` — 60%.
 
 ## Как это работает
 
@@ -69,9 +74,18 @@ Bun считает покрытие только по модулям, котор
 
 ```
 src/
-  App.svelte              UI и очередь файлов
-  app.css                 Tailwind + базовые токены
+  App.svelte              тонкий слой: auth/sync + композиция компонентов
+  app.css                 Tailwind и семантические OKLCH-токены
   main.ts                 точка входа
+  lib/sorter/
+    controller.ts         оркестратор фото/ZIP с внедрёнными зависимостями + тесты
+  lib/components/
+    AccountPanel.svelte   вход/регистрация, opt-in синхронизации
+    CategoriesField.svelte, SourcePicker.svelte, ProgressPanel.svelte,
+    ArchiveResultCard.svelte, PhotoList.svelte, HistoryPanel.svelte
+  lib/sync/
+    controller.ts         offline-first синхронизация (IndexedDB → сеть) + тесты
+    client.ts, store.ts, merge.ts, types.ts
   lib/model/
     protocol.ts           типы сообщений main ↔ worker
     engine.ts             клиент worker'а, сопоставление запросов по id
