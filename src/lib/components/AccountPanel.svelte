@@ -26,7 +26,7 @@
   // Exact wording from the design spec: honest about server-side encryption and
   // the operator's access, and explicit that sync is opt-in.
   const PRIVACY_TEXT =
-    "Фотографии не покидают устройство. Названия файлов и категории сохраняются на сервере в зашифрованном виде; оператор сервера имеет к ним доступ. Синхронизация выключена, пока вы не включите её сами.";
+    "Photos never leave your device. File names and categories are stored encrypted on the server; the server operator has access to them. Sync is off until you turn it on yourself.";
 
   const inputClass =
     "w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink outline-none transition focus-visible:border-accent-line focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60";
@@ -55,16 +55,18 @@
 
 <section class="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
   <div class="flex flex-wrap items-center justify-between gap-2">
-    <h2 class="text-sm font-semibold text-ink">Аккаунт</h2>
+    <h2 class="text-sm font-semibold text-ink">Account</h2>
     {#if email !== null}
       <span class="max-w-full truncate text-xs text-ink-muted" title={email}>{email}</span>
     {:else}
-      <span class="text-xs text-ink-muted">без аккаунта — всё хранится только в браузере</span>
+      <span class="text-xs text-ink-muted"
+        >no account — everything is stored only in your browser</span
+      >
     {/if}
   </div>
 
   {#if email === null}
-    <div class="flex gap-2" role="group" aria-label="Режим входа">
+    <div class="flex gap-2" role="group" aria-label="Sign-in mode">
       <button
         type="button"
         onclick={() => (mode = "sign-in")}
@@ -73,7 +75,7 @@
           mode === "sign-in" ? "bg-accent text-on-accent" : "text-ink-muted hover:text-ink",
         ]}
       >
-        Вход
+        Sign in
       </button>
       <button
         type="button"
@@ -83,7 +85,7 @@
           mode === "sign-up" ? "bg-accent text-on-accent" : "text-ink-muted hover:text-ink",
         ]}
       >
-        Регистрация
+        Sign up
       </button>
     </div>
 
@@ -100,7 +102,7 @@
         />
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-xs text-ink-muted">Пароль</span>
+        <span class="text-xs text-ink-muted">Password</span>
         <input
           type="password"
           autocomplete={mode === "sign-in" ? "current-password" : "new-password"}
@@ -115,19 +117,19 @@
         class="self-start rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent transition outline-none hover:bg-accent-strong focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
         disabled={busy}
       >
-        {mode === "sign-in" ? "Войти" : "Создать аккаунт"}
+        {mode === "sign-in" ? "Sign in" : "Create account"}
       </button>
     </form>
   {:else}
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
-      <span class="text-sm font-medium text-ink">Вы вошли</span>
+      <span class="text-sm font-medium text-ink">Signed in</span>
       <button
         type="button"
         onclick={onSignOut}
         class="rounded-lg border border-line px-3 py-1.5 text-sm text-ink transition outline-none hover:border-accent-line focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
         disabled={busy}
       >
-        Выйти
+        Sign out
       </button>
     </div>
 
@@ -135,10 +137,10 @@
       <summary
         class="cursor-pointer text-ink-muted outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
-        Удалить аккаунт и данные на сервере
+        Delete account and server data
       </summary>
       <p class="mt-2 text-ink-muted">
-        Локальная история останется на этом устройстве. Для подтверждения введите пароль.
+        Local history stays on this device. Enter your password to confirm.
       </p>
       <form
         class="mt-2 flex flex-col gap-2"
@@ -152,8 +154,8 @@
         <input
           type="password"
           bind:value={password}
-          placeholder="Пароль"
-          aria-label="Пароль для удаления аккаунта"
+          placeholder="Password"
+          aria-label="Password for account deletion"
           class={inputClass}
           disabled={busy}
         />
@@ -162,7 +164,7 @@
           class="rounded-lg bg-danger px-3 py-1.5 font-medium text-on-accent outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           disabled={busy || password === ""}
         >
-          Удалить безвозвратно
+          Delete permanently
         </button>
       </form>
     </details>
@@ -175,7 +177,7 @@
         class="mt-0.5 size-4 shrink-0 accent-accent"
       />
       <span class="flex flex-col gap-1">
-        <span class="text-sm font-medium text-ink">Синхронизировать метаданные</span>
+        <span class="text-sm font-medium text-ink">Sync metadata</span>
         <span class="text-xs text-ink-muted">{PRIVACY_TEXT}</span>
       </span>
     </label>

@@ -51,5 +51,9 @@ export default defineConfig({
     open: false,
     port: 3000,
     strictPort: true,
+    proxy: {
+      // `bun run dev:all` serves the API on 3001; keep the browser on one origin.
+      "/api": "http://localhost:3001",
+    },
   },
 });

@@ -73,7 +73,7 @@
 
       <DialogUI.Close
         class="absolute top-4 right-4 inline-flex size-8 items-center justify-center rounded-md text-ink-muted transition-colors outline-none hover:bg-accent-soft hover:text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-        aria-label="Закрыть"
+        aria-label="Close"
       >
         <span aria-hidden="true">×</span>
       </DialogUI.Close>

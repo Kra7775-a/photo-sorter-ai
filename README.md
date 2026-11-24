@@ -1,163 +1,157 @@
 # AI Photo Sorter
 
-Браузерный сортировщик фотографий по категориям. Модель работает локально: изображения
-не покидают устройство. Сервер не обязателен — он нужен только для аккаунтов и
-синхронизации метаданных между устройствами.
+A browser-based photo sorter that groups photos by category. The model runs locally: images never leave your device. The server is optional — it is only needed for accounts and for syncing metadata between devices.
 
-## Стек
+## Stack
 
 - Svelte 5 (runes) + TypeScript + Vite
 - Tailwind CSS v4
 - [Transformers.js](https://github.com/huggingface/transformers.js) + ONNX Runtime Web (WASM)
-- MobileCLIP-B `Xenova/mobileclip_b`, int8 (~145 МБ)
-- Web Worker для инференса
-+- ZIP без сервера: `@zip.js/zip.js` читает архив, `client-zip` собирает новый
-- PWA (vite-plugin-pwa): офлайн-оболочка, установка на устройство
+- MobileCLIP-B `Xenova/mobileclip_b`, int8 (~145 MB)
+- Web Worker for inference
+- ZIP without a server: `@zip.js/zip.js` reads the archive, `client-zip` builds the new one
+- PWA (vite-plugin-pwa): offline shell, installable on a device
 - Bun, oxlint, oxfmt, svelte-check, `bun test`
 
-## Запуск
+## Run
 
 ```bash
 bun install
-bun run dev        # http://localhost:3000
-bun run build      # production-сборка в dist/
-bun run preview    # локальный просмотр сборки
-bun run test:coverage  # покрытие (text + coverage/lcov.info)
-bun run test:mutation  # мутационные тесты (Stryker + Bun, ~6 мин)
+bun run dev        # http://localhost:3000 (client only)
+bun run dev:all    # client + API in one command, /api → localhost:3001
+bun run dev:server # API only on :3001
+bun run build      # production build into dist/
+bun run preview    # preview the build locally
+bun run test:coverage  # coverage (text + coverage/lcov.info)
+bun run test:mutation  # mutation tests (Stryker + Bun, ~6 min)
 ```
 
-Полная проверка перед коммитом:
+`dev:all` needs the same env variables as the server (`SYNC_MASTER_KEY`,
+`BETTER_AUTH_SECRET`); without them the server exits immediately. `BETTER_AUTH_URL`
+defaults to `http://localhost:3000` so better-auth cookies work through the Vite proxy.
+
+Full check before committing:
 
 ```bash
 bun run validate   # format:check + lint + typecheck + check + test + build
 ```
 
-Bun считает покрытие только по модулям, которые импортируют тесты. `worker.ts`, Svelte-компоненты
-и entry points исключены в `bunfig.toml`; проценты в отчёте относятся к модулям с тестами.
+Bun only counts coverage for modules imported by tests. `worker.ts`, Svelte components
+and entry points are excluded in `bunfig.toml`; the percentages in the report refer to
+modules that have tests.
 
-Мутационные тесты запускаются через `bun run test:mutation`. Stryker использует неофициальный
-раннер `stryker-mutator-bun-runner`; локальный патч в `patches/` адаптирует его к Bun 1.4 (тот
-больше не печатает построчные результаты в не-TTY и не понимает старый формат вывода). Отчёт —
-`reports/mutation/mutation.html`, порог `break` в `stryker.conf.json` — 60%.
+Mutation tests are run with `bun run test:mutation`. Stryker uses the unofficial
+`stryker-mutator-bun-runner`; a local patch in `patches/` adapts it to Bun 1.4 (which no
+longer prints per-line results in non-TTY mode and no longer understands the old output
+format). The report is at `reports/mutation/mutation.html`; the `break` threshold in
+`stryker.conf.json` is 60%.
 
-## Как это работает
+## How it works
 
-1. Пользователь задаёт категории (по одной на строку, только по-английски).
-2. Worker лениво загружает две башни MobileCLIP: текстовую и визуальную.
-3. Метки превращаются в промпты `a photo of <label>` и кэшируются по набору.
-4. Эмбеддинг фото сравнивается с эмбеддингами меток, softmax даёт вероятности,
-   UI показывает топ-3.
-5. Первый запуск скачивает ~145 МБ (кэшируется браузером), дальше инференс занимает
-   сотни миллисекунд на WASM.
+1. The user enters categories (one per line, English only).
+2. The worker lazily loads two MobileCLIP towers: text and vision.
+3. Labels are turned into `a photo of <label>` prompts and cached by set.
+4. The photo embedding is compared with the label embeddings, softmax produces probabilities,
+   and the UI shows the top 3.
+5. The first run downloads ~145 MB (cached by the browser); after that inference takes
+   hundreds of milliseconds on WASM.
 
-### ZIP-архивы
+### ZIP archives
 
-Можно выбрать не отдельные фото, а `.zip`. Архив читается по одному файлу за раз
-(без распаковки всего в память), каждое изображение классифицируется, после чего
-собирается новый архив `*-sorted.zip`:
+You can select a `.zip` instead of individual photos. The archive is read one file at a time
+(without unpacking everything into memory), each image is classified, and a new
+`*-sorted.zip` archive is assembled:
 
-- фото раскладываются по папкам с названием категории (`people/`, `nature/`, …);
-- берётся только имя файла, исходные каталоги архива не сохраняются;
-- одинаковые имена получают суффикс ` (2)`, ` (3)`;
-- `report.csv` в корне содержит источник, категорию, уверенность и статус
+- photos are placed into folders named after the category (`people/`, `nature/`, …);
+- only the file name is used; the original directories inside the archive are not preserved;
+- duplicate names get a ` (2)`, ` (3)` suffix;
+- `report.csv` at the root contains the source, category, confidence and status
   (`sorted` / `skipped` / `error`);
-- не-изображения и файлы с ошибкой декодирования не копируются, но попадают в отчёт;
-- HEIC/TIFF пропускаются: браузер не умеет их декодировать.
+- non-images and files that fail to decode are not copied, but are listed in the report;
+- HEIC/TIFF are skipped: the browser cannot decode them.
 
-### Почему английские метки
+### Why English labels
 
-Текстовый энкодер MobileCLIP англоязычный. Русские слова дают почти случайные результаты
-(фото кота уходит в «природу» вместо «животных»). Шаблон `a photo of ` заметно улучшает
-короткие метки вроде `cat`.
+MobileCLIP's text encoder is English-only. Russian words produce almost random results
+(a photo of a cat ends up under "nature" instead of "animals"). The `a photo of ` template
+noticeably improves short labels like `cat`.
 
-## Структура
+## Structure
 
 ```
 src/
-  App.svelte              тонкий слой: auth/sync + композиция компонентов
-  app.css                 Tailwind и семантические OKLCH-токены
-  main.ts                 точка входа
-- `lib/ui/`                UI-kit на bits-ui + OKLCH-токенах (см. `docs/ui-kit.md`)
+  App.svelte              thin layer: auth/sync + component composition
+  app.css                 Tailwind and semantic OKLCH tokens
+  main.ts                 entry point
+- `lib/ui/`                UI kit on bits-ui + OKLCH tokens (see `docs/ui-kit.md`)
   lib/sorter/
-    controller.ts         оркестратор фото/ZIP с внедрёнными зависимостями + тесты
+    controller.ts         photo/ZIP orchestrator with injected dependencies + tests
   lib/components/
-    AccountPanel.svelte   вход/регистрация, opt-in синхронизации
+    AccountPanel.svelte   sign in/sign up, sync opt-in
     CategoriesField.svelte, SourcePicker.svelte, ProgressPanel.svelte,
     ArchiveResultCard.svelte, PhotoList.svelte, HistoryPanel.svelte
   lib/sync/
-    controller.ts         offline-first синхронизация (IndexedDB → сеть) + тесты
+    controller.ts         offline-first sync (IndexedDB → network) + tests
     client.ts, store.ts, merge.ts, types.ts
   lib/model/
-    protocol.ts           типы сообщений main ↔ worker
-    engine.ts             клиент worker'а, сопоставление запросов по id
-    worker.ts             загрузка модели, эмбеддинги, softmax
-    ranking.ts            чистая сортировка/срез результатов + тесты
+    protocol.ts           message types between main thread and worker
+    engine.ts             worker client, matching requests by id
+    worker.ts             model loading, embeddings, softmax
+    ranking.ts            pure result sorting/slicing + tests
   lib/archive/
-    naming.ts             безопасные имена, дедупликация, report.csv + тесты
-    sort.ts               чтение ZIP → классификация → новый ZIP + тесты
+    naming.ts             safe names, deduplication, report.csv + tests
+    sort.ts               read ZIP → classify → new ZIP + tests
 ```
 
-## Деплой
+## Deployment
 
-Статическая сборка (`dist/`) работает сама по себе: Cloudflare Pages, Vercel или любой CDN.
-Модель на этих площадках не хостится (у Cloudflare Pages лимит 25 МиБ на файл), она
-скачивается с Hugging Face Hub и кэшируется в браузере. Если нужен свой CDN, положите файлы
-модели в R2/S3 и переопределите `env.remoteHost` в worker'е. Без сервера синхронизация
-недоступна, но сортировка работает полностью.
+A static build (`dist/`) works on its own: Cloudflare Pages, Vercel, or any CDN. The model is not hosted on these platforms (Cloudflare Pages has a 25 MiB per-file limit); it is downloaded from Hugging Face Hub and cached in the browser. If you need your own CDN, put the model files in R2/S3 and override `env.remoteHost` in the worker. Without the server, sync is unavailable, but sorting works fully.
 
-## Сервер и синхронизация
+## Server and sync
 
-Сервер — один процесс Bun: отдаёт `dist/` и обрабатывает `/api` (аккаунты, прогоны,
-настройки). Сначала соберите фронтенд (`bun run build`), затем задайте переменные окружения:
+The server is a single Bun process: it serves `dist/` and handles `/api` (accounts, runs, settings). First build the frontend (`bun run build`), then set the environment variables:
 
-| Переменная           | Назначение                                   | По умолчанию                  |
-| -------------------- | -------------------------------------------- | ----------------------------- |
-| `SYNC_MASTER_KEY`    | обязательно, base64 32 случайных байт         | —                             |
-| `BETTER_AUTH_SECRET` | обязательно, секрет для сессий                | —                             |
-| `SYNC_DB_PATH`       | путь к SQLite-файлу                           | `sync.db`                     |
-| `PORT`               | порт HTTP-сервера                             | `3001`                        |
-| `BETTER_AUTH_URL`    | публичный URL (для cookie и ссылок better-auth) | `http://localhost:$PORT`      |
+| Variable             | Purpose                                              | Default                  |
+| -------------------- | ---------------------------------------------------- | ------------------------ |
+| `SYNC_MASTER_KEY`    | required, base64 of 32 random bytes                   | —                        |
+| `BETTER_AUTH_SECRET` | required, secret for sessions                         | —                        |
+| `SYNC_DB_PATH`       | path to the SQLite file                               | `sync.db`                |
+| `PORT`               | HTTP server port                                      | `3001`                   |
+| `BETTER_AUTH_URL`    | public URL (for better-auth cookies and links)        | `http://localhost:$PORT` |
 
 ```bash
-bun run keygen   # печатает ключ: скопируйте его в SYNC_MASTER_KEY
-SYNC_MASTER_KEY=<ключ> BETTER_AUTH_SECRET=<секрет> bun run start
+bun run keygen   # prints a key: copy it into SYNC_MASTER_KEY
+SYNC_MASTER_KEY=<key> BETTER_AUTH_SECRET=<secret> bun run start
 ```
 
-Ротация мастер-ключа: сгенерируйте новый `SYNC_MASTER_KEY`, затем
-`OLD_SYNC_MASTER_KEY=<старый> SYNC_MASTER_KEY=<новый> bun run rewrap` — перешифрует ключи
-пользователей без потери данных.
+Master key rotation: generate a new `SYNC_MASTER_KEY`, then
+`OLD_SYNC_MASTER_KEY=<old> SYNC_MASTER_KEY=<new> bun run rewrap` — this re-encrypts users'
+keys without data loss.
 
-Для разработки есть `bun run dev:server` (watch-режим). Секреты хранятся только в окружении,
-в репозиторий они не попадают; потеря `SYNC_MASTER_KEY` означает потерю доступа к зашифрованным
-данным.
+For development there is `bun run dev:server` (watch mode). Secrets are stored only in the
+environment and are never committed; losing `SYNC_MASTER_KEY` means losing access to the
+encrypted data.
 
-Приватность: «Фотографии не покидают устройство. Названия файлов и категории сохраняются
-на сервере в зашифрованном виде; оператор сервера имеет к ним доступ. Синхронизация
-выключена, пока вы не включите её сами.»
+Privacy: "Photos never leave your device. File names and categories are stored encrypted on the server; the server operator has access to them. Sync is off until you turn it on yourself."
 
 ## Self-host
 
-Тот же процесс можно поднять локально командами выше или контейнером (Dockerfile копирует
-готовую `dist/` и `server/`):
+The same process can be run locally with the commands above, or in a container (the Dockerfile copies the ready `dist/` and `server/`):
 
 ```bash
 bun run build
 docker build -t photo-sorter-ai .
 docker run -p 3001:3001 \
-  -e SYNC_MASTER_KEY=<ключ> \
-  -e BETTER_AUTH_SECRET=<секрет> \
+  -e SYNC_MASTER_KEY=<key> \
+  -e BETTER_AUTH_SECRET=<secret> \
   -e BETTER_AUTH_URL=http://localhost:3001 \
   -e SYNC_DB_PATH=/app/data/sync.db \
   -v "$PWD/data:/app/data" \
   photo-sorter-ai
 ```
 
-Бэкап — файл `SYNC_DB_PATH` плюс надёжно сохранённый `SYNC_MASTER_KEY`; без ключа бэкап
-не расшифровать. Статику без сервера тоже можно раздавать отдельно — тогда синхронизация
-просто недоступна.
+A backup is the `SYNC_DB_PATH` file plus a safely stored `SYNC_MASTER_KEY`; without the key the backup cannot be decrypted. Static files can also be served separately without the server — sync is then simply unavailable.
 
-## Облако
+## Cloud
 
-Используйте тот же образ/процесс: один Bun-сервер отдаёт статику и `/api`, перед ним
-TLS-прокси (Caddy, Nginx, Cloudflare Tunnel). Укажите `BETTER_AUTH_URL` с публичным `https`-адресом,
-положите SQLite на постоянный том и настройте бэкап вместе с ключами.
+Use the same image/process: one Bun server serves the static files and `/api`, with a TLS proxy in front (Caddy, Nginx, Cloudflare Tunnel). Set `BETTER_AUTH_URL` to the public `https` address, put SQLite on a persistent volume, and configure backups together with the keys.

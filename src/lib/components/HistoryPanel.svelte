@@ -13,10 +13,10 @@
   let { runs, statuses, busy, onDelete, onDetails }: Props = $props();
 
   const STATUS_TEXT: Record<RunStatus, string> = {
-    local: "локально",
-    pending: "в очереди",
-    synced: "синхронизировано",
-    error: "ошибка",
+    local: "local",
+    pending: "queued",
+    synced: "synced",
+    error: "error",
   };
 
   const ordered = $derived([...runs].sort((left, right) => right.createdAt - left.createdAt));
@@ -43,23 +43,23 @@
   }
 
   function formatDate(timestamp: number): string {
-    return new Date(timestamp).toLocaleString("ru-RU");
+    return new Date(timestamp).toLocaleString("en-US");
   }
 </script>
 
 <section class="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
   <div class="flex items-center justify-between gap-2">
-    <h2 class="text-sm font-semibold text-ink">История сортировок</h2>
-    <span class="text-xs text-ink-muted">прогонов: {runs.length}</span>
+    <h2 class="text-sm font-semibold text-ink">Sorting history</h2>
+    <span class="text-xs text-ink-muted">runs: {runs.length}</span>
   </div>
 
   <p class="text-xs text-ink-muted">
-    Здесь сохраняется только отчёт: названия файлов и категории. Сами фото не сохраняются и из
-    истории не восстанавливаются.
+    Only the report is stored here: file names and categories. Photos are not saved and cannot be
+    restored from history.
   </p>
 
   {#if ordered.length === 0}
-    <p class="text-sm text-ink-muted">Пока нет сохранённых прогонов.</p>
+    <p class="text-sm text-ink-muted">No saved runs yet.</p>
   {:else}
     <ul class="flex flex-col gap-2">
       {#each ordered as run (run.clientRunId)}
@@ -86,13 +86,13 @@
                 class="inline-flex min-h-6 min-w-6 items-center justify-center rounded-lg px-1 text-xs text-ink-muted underline transition outline-none hover:text-danger focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={busy}
               >
-                Удалить
+                Delete
               </button>
             </div>
           </div>
 
           <p class="mt-2 text-xs text-ink-muted tabular-nums">
-            отсортировано: {run.counts.sorted} · пропущено: {run.counts.skipped} · ошибок:
+            sorted: {run.counts.sorted} · skipped: {run.counts.skipped} · errors:
             {run.counts.errors}
           </p>
 
@@ -101,10 +101,10 @@
               <table class="w-full text-left text-xs">
                 <thead>
                   <tr class="text-ink-muted">
-                    <th class="pr-2 pb-1 font-medium">Файл</th>
-                    <th class="pr-2 pb-1 font-medium">Категория</th>
-                    <th class="pr-2 pb-1 font-medium">Уверенность</th>
-                    <th class="pb-1 font-medium">Статус</th>
+                    <th class="pr-2 pb-1 font-medium">File</th>
+                    <th class="pr-2 pb-1 font-medium">Category</th>
+                    <th class="pr-2 pb-1 font-medium">Confidence</th>
+                    <th class="pb-1 font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -117,17 +117,17 @@
                       </td>
                       <td class="py-1">
                         {row.status === "sorted"
-                          ? "отсортирован"
+                          ? "sorted"
                           : row.status === "skipped"
-                            ? "пропущен"
-                            : "ошибка"}
+                            ? "skipped"
+                            : "error"}
                       </td>
                     </tr>
                   {/each}
                 </tbody>
               </table>
               {#if run.rows.length === 0}
-                <p class="py-1 text-xs text-ink-muted">Подробности строк недоступны.</p>
+                <p class="py-1 text-xs text-ink-muted">Row details unavailable.</p>
               {/if}
             </div>
           {/if}

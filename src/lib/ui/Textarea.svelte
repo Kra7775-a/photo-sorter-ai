@@ -63,7 +63,7 @@
     class={textareaVariants({ invalid: Boolean(error) })}
     aria-invalid={error ? "true" : undefined}
     aria-describedby={describedBy}
-    aria-label={label ? undefined : "Поле ввода"}></textarea>
+    aria-label={label ? undefined : "Input field"}></textarea>
 
   {#if hint}
     <p id={hintId} class="text-xs text-ink-muted">{hint}</p>

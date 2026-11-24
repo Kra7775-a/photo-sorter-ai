@@ -63,7 +63,7 @@
     class={textFieldVariants({ invalid: Boolean(error) })}
     aria-invalid={error ? "true" : undefined}
     aria-describedby={describedBy}
-    aria-label={label ? undefined : "Поле ввода"}
+    aria-label={label ? undefined : "Input field"}
   />
 
   {#if hint}

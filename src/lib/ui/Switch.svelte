@@ -36,7 +36,7 @@
     class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full border border-line bg-line transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-60 data-[state=checked]:border-accent data-[state=checked]:bg-accent"
     aria-labelledby={label ? labelId : undefined}
     aria-describedby={description ? descriptionId : undefined}
-    aria-label={label ? undefined : "Переключатель"}
+    aria-label={label ? undefined : "Switch"}
   >
     <SwitchUI.Thumb
       class="pointer-events-none block size-4 rounded-full bg-panel shadow-sm transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0.5"

@@ -63,7 +63,7 @@ describe("safeFolderName", () => {
   });
 
   test("truncates by code points, not UTF-16 units", () => {
-    expect(safeFolderName("я".repeat(80))).toBe("я".repeat(64));
+    expect(safeFolderName("é".repeat(80))).toBe("é".repeat(64));
     expect(safeFolderName("😀".repeat(80))).toBe("😀".repeat(64));
   });
 });

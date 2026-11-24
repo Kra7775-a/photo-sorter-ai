@@ -173,7 +173,7 @@ describe("createSyncController", () => {
 
     expect(h.state.outbox).toEqual([run.clientRunId]);
     expect(h.last().statuses[run.clientRunId]).toBe("error");
-    expect(h.last().notice).toBe("Нет соединения: прогоны останутся в очереди.");
+    expect(h.last().notice).toBe("No connection: runs will stay in the queue.");
   });
 
   test("merges remote runs and settings with local data", async () => {
@@ -233,7 +233,7 @@ describe("createSyncController", () => {
 
     expect(h.unauthorizedCalls()).toBe(1);
     expect(h.pullRuns).not.toHaveBeenCalled();
-    expect(h.last().notice).toBe("Сессия истекла. Войдите в аккаунт снова.");
+    expect(h.last().notice).toBe("Session expired. Please sign in again.");
   });
 
   test("a quota error is reported without dropping the local run", async () => {
@@ -246,7 +246,7 @@ describe("createSyncController", () => {
     await h.controller.deleteRun({ ...run, serverId: "srv-1" });
 
     expect(h.state.runs).toHaveLength(1);
-    expect(h.last().notice).toBe("Превышен лимит сервера: данные не синхронизированы.");
+    expect(h.last().notice).toBe("Server quota exceeded: data was not synced.");
   });
 
   test("deleting a synced run removes both copies", async () => {
@@ -280,7 +280,7 @@ describe("createSyncController", () => {
     h.enable();
     await h.controller.recordRun(run);
 
-    expect(h.last().notice).toBe("Не удалось синхронизировать данные.");
+    expect(h.last().notice).toBe("Failed to sync data.");
     expect(h.last().statuses[run.clientRunId]).toBe("error");
     expect(h.state.runs).toHaveLength(1);
   });
@@ -295,7 +295,7 @@ describe("createSyncController", () => {
     await h.controller.updateSettings({ labels: ["cats"], updatedAt: 100 });
 
     expect(h.state.settings).toEqual({ labels: ["cats"], updatedAt: 100 });
-    expect(h.last().notice).toBe("Не удалось синхронизировать данные.");
+    expect(h.last().notice).toBe("Failed to sync data.");
   });
 
   test("queueAll marks local runs as pending only when sync is on", async () => {
@@ -361,7 +361,7 @@ describe("createSyncController", () => {
     await h.controller.load();
     await h.controller.sync();
 
-    expect(h.last().notice).toBe("Не удалось синхронизировать данные.");
+    expect(h.last().notice).toBe("Failed to sync data.");
     expect(h.state.runs).toEqual([run]);
   });
 

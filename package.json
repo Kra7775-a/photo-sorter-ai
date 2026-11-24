@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --bun vite",
+    "dev:all": "bun scripts/dev-all.ts",
     "dev:server": "bun --watch server/main.ts",
     "start": "bun server/main.ts",
     "keygen": "bun server/keygen.ts",

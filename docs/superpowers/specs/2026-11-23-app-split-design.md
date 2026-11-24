@@ -1,45 +1,46 @@
-# Дизайн: разделить App.svelte на оркестратор и компоненты
+# Design: split App.svelte into an orchestrator and components
 
-Дата: 2026-11-23
-Статус: выбран подход 3 (одобрен пользователем)
+Date: 2026-11-23
+Status: approach 3 chosen (approved by the user)
 
-## Зачем
+## Why
 
-`src/App.svelte` вырос до ~600 строк: в нём смешаны классификация, работа с ZIP, загрузка модели,
-синхронизация, локальная история и разметка. Это мешает и поддержке, и будущему UI-kit на bits-ui.
+`src/App.svelte` has grown to ~600 lines: classification, ZIP handling, model loading,
+sync, local history, and markup are all mixed together. This hinders maintenance and the
+future bits-ui UI kit.
 
-## Цели
+## Goals
 
-- `App.svelte` становится тонким: состояние приходит из оркестратора, разметка — из компонентов.
-- Вся бизнес-логика фото и ZIP лежит в тестируемом чистом модуле, без Svelte-рантайма.
-- Поведение, контракт ZIP и нулевой `/api`-трафик при выключенной синхронизации не меняются.
-- Подготовить почву для UI-kit: компоненты становятся маленькими оболочками с `$props()`.
+- `App.svelte` becomes thin: state comes from the orchestrator, markup from components.
+- All photo and ZIP business logic lives in a testable pure module, with no Svelte runtime.
+- Behavior, the ZIP contract, and zero `/api` traffic when sync is off are unchanged.
+- Lay the groundwork for the UI kit: components become small wrappers with `$props()`.
 
-## Не-цели
+## Non-goals
 
-- UI-kit на bits-ui и миграция на него (отдельный этап после этой резки).
-- Изменение ARCHIVE/report контракта, engine/worker, sync-протокола.
-- Простое перемещение `AccountPanel`/`HistoryPanel` — они уже отдельные.
+- The bits-ui UI kit and migration to it (a separate stage after this split).
+- Changing the ARCHIVE/report contract, engine/worker, or sync protocol.
+- Merely moving `AccountPanel`/`HistoryPanel` — they are already separate.
 
-## Подход
+## Approach
 
-1. **Оркестратор `src/lib/sorter/controller.ts`** по образцу `sync/controller.ts`:
-   - зависимости внедряются: `createEngine`, `sortArchive`, `URL.createObjectURL/revokeObjectURL`, `now`, `uuid`;
-   - состояние (`items`, `pending`, `failure`, `progress`, `archiveProgress`, `archiveResult`, флаги)
-     живёт внутри, наружу отдаётся снимок через `onSnapshot`;
-   - методы: `classifyFiles(files, labels)`, `sortArchiveFile(file, labels)`, `dispose()`;
-   - тестируется с фейковым engine/sortArchive, including cleanup object URLs and label snapshot.
-2. **Презентационные компоненты** в `src/lib/components/`:
-   - `CategoriesField.svelte` — textarea категорий;
-   - `SourcePicker.svelte` — оба file input;
-   - `ProgressPanel.svelte` — progressbar (модель/архив);
-   - `ArchiveResultCard.svelte` — результат и отчёт;
-   - `PhotoList.svelte` — список фото и score-чипы.
-   Все — `$props()`, русские строки, токены из `app.css`, keyed `{#each}`.
-3. **`App.svelte`** — только состояние снимка + wiring: auth/sync-часть остаётся как есть, но рендер
-   delegation в компоненты; цель ~100–150 строк.
+1. **Orchestrator `src/lib/sorter/controller.ts`**, modeled on `sync/controller.ts`:
+   - dependencies are injected: `createEngine`, `sortArchive`, `URL.createObjectURL/revokeObjectURL`, `now`, `uuid`;
+   - state (`items`, `pending`, `failure`, `progress`, `archiveProgress`, `archiveResult`, flags)
+     lives inside and is exposed as a snapshot via `onSnapshot`;
+   - methods: `classifyFiles(files, labels)`, `sortArchiveFile(file, labels)`, `dispose()`;
+   - tested with a fake engine/sortArchive, including cleanup of object URLs and the label snapshot.
+2. **Presentational components** in `src/lib/components/`:
+   - `CategoriesField.svelte` — categories textarea;
+   - `SourcePicker.svelte` — both file inputs;
+   - `ProgressPanel.svelte` — progressbar (model/archive);
+   - `ArchiveResultCard.svelte` — result and report;
+   - `PhotoList.svelte` — photo list and score chips.
+   All use `$props()`, English strings, tokens from `app.css`, and keyed `{#each}`.
+3. **`App.svelte`** — snapshot state and wiring only: the auth/sync part stays as is, but rendering
+   is delegated to components; target ~100–150 lines.
 
-## Что остаётся строителю
+## Left to the builder
 
-- Точные props-интерфейсы компонентов, порядок снимка и тесты.
-- Проверка в браузере: загрузка фото, ZIP-прогон, обе темы, отсутствие `/api` при выключенном sync.
+- Exact props interfaces of the components, snapshot order, and tests.
+- Browser check: photo upload, ZIP run, both themes, no `/api` requests when sync is off.

@@ -21,8 +21,8 @@ const DTYPE = "q8";
 const LOGIT_SCALE = 100;
 const TOP_K = 3;
 /**
- * The text tower is English-only: Russian labels score near random
- * (a cat photo lands in "природа" instead of "животные"), so prompts are
+ * The text tower is English-only: non-English labels score near random
+ * (a cat photo lands in "nature" instead of "animals"), so prompts are
  * built in English and the template adds a measurable gain on short labels.
  */
 const PROMPT_TEMPLATE = "a photo of ";

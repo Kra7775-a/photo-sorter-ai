@@ -78,23 +78,23 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
 
   function reportError(error: unknown, runId?: string): void {
     if (error instanceof UnauthorizedError) {
-      notice = "Сессия истекла. Войдите в аккаунт снова.";
+      notice = "Session expired. Please sign in again.";
       deps.onUnauthorized();
       return;
     }
     if (error instanceof QuotaError) {
-      notice = "Превышен лимит сервера: данные не синхронизированы.";
+      notice = "Server quota exceeded: data was not synced.";
       return;
     }
     if (error instanceof NetworkError) {
       if (runId !== undefined) {
         failed.add(runId);
       }
-      notice = "Нет соединения: прогоны останутся в очереди.";
+      notice = "No connection: runs will stay in the queue.";
       return;
     }
 
-    notice = "Не удалось синхронизировать данные.";
+    notice = "Failed to sync data.";
     if (runId !== undefined) {
       failed.add(runId);
     }

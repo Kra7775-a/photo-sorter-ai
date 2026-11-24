@@ -1,151 +1,149 @@
-# Дизайн: аккаунты и синхронизация метаданных сортировок
+# Design: accounts and sorting metadata sync
 
-Дата: 2026-11-23
-Статус: черновик на ревью
+Date: 2026-11-23
+Status: draft under review
 
-## Зачем
+## Why
 
-Сейчас приложение — одна статическая папка: категории и результаты живут в памяти вкладки и
-пропадают при перезагрузке. Нужны две аудитории:
+Right now the app is a single static folder: categories and results live in the tab's memory and
+disappear on reload. Two audiences need support:
 
-- **облако** — человек открывает сайт и ничего не ставит;
-- **self-host** — человек разворачивает копию у себя.
+- **cloud** — someone opens the site and installs nothing;
+- **self-host** — someone deploys a copy on their own.
 
-В обоих случаях работа не должна пропадать, и её должно быть видно с другого устройства.
-При этом суть продукта не меняется: **фотографии никогда не покидают устройство**, инференс остаётся
-в браузере (Web Worker + MobileCLIP). На сервер уезжает только мета: категории, настройки и
-отчёты сортировок (имя файла → категория, уверенность, статус).
+In both cases work must not be lost, and it must be visible from another device. At the same time,
+the essence of the product does not change: **photos never leave the device**, inference stays
+in the browser (Web Worker + MobileCLIP). Only metadata goes to the server: categories, settings,
+and sorting reports (file name → category, confidence, status).
 
-## Цели
+## Goals
 
-- Аккаунты (вход/регистрация) и сессии.
-- Сохранение прогонов сортировки и настроек на сервере, доступ с любого устройства.
-- Offline-first: без аккаунта и без сети всё работает как сейчас, данные лежат в IndexedDB.
-- Синхронизация — явный opt-in переключатель; по умолчанию выключена.
-- Шифрование меты at rest (конверт, вариант A ниже).
-- Self-host: один процесс, один файл БД. Облако: тот же процесс на хосте.
-- Честная формулировка приватности в UI.
+- Accounts (sign in/sign up) and sessions.
+- Persisting sorting runs and settings on the server, accessible from any device.
+- Offline-first: without an account and without a network everything works as before, with data in IndexedDB.
+- Sync is an explicit opt-in toggle; off by default.
+- Metadata encryption at rest (envelope, option A below).
+- Self-host: one process, one database file. Cloud: the same process on a host.
+- Honest privacy wording in the UI.
 
-## Не-цели
+## Non-goals
 
-- Хранение фотографий на сервере (никогда).
-- Инференс на сервере.
-- Поиск/фильтрация по именам файлов на сервере.
-- E2EE (вариант B) сейчас — только совместимый формат для будущего перехода.
-- Шаринг прогонов между пользователями, коллаборация.
-- Мобильные приложения.
+- Storing photos on the server (never).
+- Server-side inference.
+- Search/filtering by file names on the server.
+- E2EE (option B) now — only a compatible format for a future transition.
+- Sharing runs between users, collaboration.
+- Mobile apps.
 
-## Анти-цели
+## Anti-goals
 
-- Потеря локального режима: без сервера приложение обязано работать полностью.
-- Открытые имена файлов в БД.
-- Молчаливая отправка чего-либо на сервер без включённой синхронизации.
-- Восстановление «потерянных фото» из истории: история хранит отчёт, не изображения.
+- Losing local mode: without a server the app must work fully.
+- Plaintext file names in the database.
+- Silently sending anything to the server without sync enabled.
+- Restoring "lost photos" from history: history stores a report, not images.
 
-## Ограничения (из AGENTS.md и текущего кода)
+## Constraints (from AGENTS.md and current code)
 
-- Bun только, `exact = true` в `bunfig.toml`; не менять точные версии на диапазоны.
-- Svelte 5 runes; цвета — семантические токены `src/app.css`; oxfmt/oxlint, не Prettier/ESLint.
-- `@huggingface/transformers` импортируется только в `worker.ts`.
-- ZIP-контракт и потоковая обработка не меняются.
-- `bun run validate` — обязательный gate; покрытие 90% lines/functions по тестируемым модулям.
-- Код/идентификаторы/комментарии — английские; строки UI — русские.
-- CI нет; новые ветки в `engine.ts`, `ranking.ts`, `archive/*` и новых чистых модулях требуют тестов.
+- Bun only, `exact = true` in `bunfig.toml`; don't replace exact versions with ranges.
+- Svelte 5 runes; colors are semantic tokens from `src/app.css`; oxfmt/oxlint, not Prettier/ESLint.
+- `@huggingface/transformers` is imported only in `worker.ts`.
+- The ZIP contract and streaming are unchanged.
+- `bun run validate` is a required gate; 90% lines/functions coverage on tested modules.
+- Code/identifiers/comments and UI strings are English.
+- No CI; new branches in `engine.ts`, `ranking.ts`, `archive/*` and new pure modules need tests.
 
-## Подходы
+## Approaches
 
-### Архитектура
+### Architecture
 
-1. **Bun-сервер + better-auth + bun:sqlite (выбран).** `server/` рядом со статикой: Elysia,
-   сессии better-auth, sqlite-файл. Self-host — один процесс; облако — тот же процесс на
-   Fly/VPS. Плюсы: привычные аккаунты, восстановление доступа, один рантайм, тривиальный
-   self-host. Минусы: облако перестаёт быть чист статикой (хост, TLS, бэкапы); оператор
-   сервера имеет доступ к мете (лечится opt-in и честной формулировкой, вариант A).
-2. Cloudflare Workers + D1. Отклонён: self-host получает второй, несовместимый бэкенд;
-   better-auth поверх D1 — менее хоженая тропа.
-3. Без аккаунтов, E2EE по парольной фразе. Отклонён как основной: нет восстановления
-   доступа, непривычный UX; сохраняется как будущий вариант B поверх того же формата блобов.
+1. **Bun server + better-auth + bun:sqlite (chosen).** `server/` next to the static files: Elysia,
+   better-auth sessions, a sqlite file. Self-host — one process; cloud — the same process on
+   Fly/VPS. Pros: familiar accounts, account recovery, one runtime, trivial self-host. Cons: the
+   cloud is no longer pure static (host, TLS, backups); the server operator has access to metadata
+   (mitigated by opt-in and honest wording, option A).
+2. Cloudflare Workers + D1. Rejected: self-host would get a second, incompatible backend;
+   better-auth on top of D1 is a less-traveled path.
+3. No accounts, E2EE with a passphrase. Rejected as the primary option: no account recovery,
+   unfamiliar UX; kept as a future option B on top of the same blob format.
 
-### Шифрование
+### Encryption
 
-- **A (выбран): конверт на сервере.** Мастер-ключ в env, на пользователя случайный ключ
-  данных, блобы AES-256-GCM. Защищает дамп/бэкап/диск; оператор читает.
-- B: E2EE в браузере. Отложен; формат блоба помечается схемой, переход = смена владельца
-  ключа без миграции данных.
-- SQLCipher «всей БД» невозможен: `bun:sqlite` его не поддерживает (oven-sh/bun#11397 открыт).
-  Шифруем не колонки, а **весь отчёт прогона одним блобом**: серверу не нужны запросы по
-  именам, слепые индексы не нужны.
+- **A (chosen): envelope on the server.** Master key in env, random per-user data key,
+  AES-256-GCM blobs. Protects against dumps/backups/disk; the operator can read.
+- B: E2EE in the browser. Deferred; the blob format is tagged with a scheme, so the transition is
+  a change of key ownership without data migration.
+- Whole-database SQLCipher is not possible: `bun:sqlite` does not support it (oven-sh/bun#11397 is open).
+  We encrypt not individual columns, but **the entire run report as one blob**: the server needs no
+  queries by name, so no blind indexes are needed.
 
-## Решено пользователем
+## Decided by the user
 
-- Фото не хранятся на сервере; только мета.
-- Нужно продолжение работы с другого устройства ⇒ сервер и аккаунты нужны.
-- Архитектура 1: Bun + better-auth + bun:sqlite.
-- Шифрование A сейчас, с прицелом на B.
+- Photos are not stored on the server; only metadata.
+- Work must be continuable from another device ⇒ a server and accounts are needed.
+- Architecture 1: Bun + better-auth + bun:sqlite.
+- Encryption A now, with an eye on B.
 
-## Мои решения (можно оспорить)
+## My decisions (open to challenge)
 
-- **Elysia** (выбор пользователя: хочет попробовать; Bun-native, типизированные роуты).
-  Каркас Task 1 landed на Hono и переезжает на Elysia в Task 3 отдельным коммитом.
-- **Вход: email + пароль** на старте; верификация email выключена (нет SMTP-зависимости);
-  OAuth/passkeys — позже. Аккаунт = email, это единственные открытые персональные данные.
-- **Один пакет**, каталог `server/`, без workspaces: скрипты `dev:server`, `start`, `keygen`.
-- **Прогоны append-only** ⇒ конфликтов слияния нет; настройки — last-write-wins по
-  `updatedAt`. Удаление прогона — явное действие пользователя.
-- **История = отчёт**, не фото. UI прямо говорит: «сохраняются названия и категории,
-  сами фото не сохраняются и из истории не восстанавливаются».
-- **Квоты** (моя оценка, не требование): 1000 прогонов на пользователя, 20 000 строк в
-  прогоне, 2 МБ блоба; сверх — отказ с понятной ошибкой.
-- **Выход из аккаунта** останавливает синхронизацию, локальные данные остаются локальными;
-  переключение аккаунта не смешивает наборы (локальная история общая, серверная — per user).
-- **Удаление аккаунта** каскадно удаляет серверные данные.
-- **Облако**: Docker-образ `oven/bun`, один процесс отдаёт `dist/` и `/api`; пример Fly.io.
-  Self-host: тот же образ или `bun run start`; статика без сервера тоже поддерживается
-  (синхронизация просто недоступна).
+- **Elysia** (the user's choice: wants to try it; Bun-native, typed routes).
+  The Task 1 skeleton landed on Hono and moves to Elysia in Task 3 in a separate commit.
+- **Sign-in: email + password** at first; email verification is disabled (no SMTP dependency);
+  OAuth/passkeys later. An account is an email address — the only plaintext personal data.
+- **Single package**, `server/` directory, no workspaces: `dev:server`, `start`, `keygen` scripts.
+- **Append-only runs** ⇒ no merge conflicts; settings use last-write-wins by
+  `updatedAt`. Deleting a run is an explicit user action.
+- **History = report**, not photos. The UI states outright: "file names and categories are
+  stored; the photos themselves are not stored and cannot be restored from history".
+- **Quotas** (my estimate, not a requirement): 1000 runs per user, 20 000 rows per
+  run, 2 MB per blob; beyond that — rejection with a clear error.
+- **Signing out** stops sync, local data stays local;
+  switching accounts does not mix datasets (local history is shared, server history is per user).
+- **Account deletion** cascades to server data.
+- **Cloud**: `oven/bun` Docker image, one process serves `dist/` and `/api`; a Fly.io example.
+  Self-host: the same image or `bun run start`; static files without the server are also supported
+  (sync is simply unavailable).
 
-## Устройство
+## How it works
 
-### Сервер (`server/`)
+### Server (`server/`)
 
-- `server/index.ts` — Elysia: `/api/auth/*` → better-auth, остальное — API синхронизации,
-  в продакшене отдаёт `dist/`.
-- `server/db.ts` — `bun:sqlite`, миграции списком SQL-строк с версией.
-- `server/crypto.ts` — конверт: мастер-ключ `SYNC_MASTER_KEY` (32 байта, base64, env);
-  per-user data key (random 32) оборачивается мастер-ключом; блоб = AES-256-GCM,
-  случайный nonce, AAD = `userId|recordId|scheme`; формат `{scheme, keyVersion, nonce, ct}`.
-  Чистые функции ⇒ юнит-тесты (round-trip, tamper, wrong key, rotation).
-- Таблицы: better-auth (`user`, `session`, `account`, `verification`);
+- `server/index.ts` — Elysia: `/api/auth/*` → better-auth, the rest is the sync API,
+  serving `dist/` in production.
+- `server/db.ts` — `bun:sqlite`, migrations as a list of versioned SQL strings.
+- `server/crypto.ts` — envelope: master key `SYNC_MASTER_KEY` (32 bytes, base64, env);
+  the per-user data key (random 32) is wrapped with the master key; blob = AES-256-GCM,
+  random nonce, AAD = `userId|recordId|scheme`; format `{scheme, keyVersion, nonce, ct}`.
+  Pure functions ⇒ unit tests (round-trip, tamper, wrong key, rotation).
+- Tables: better-auth (`user`, `session`, `account`, `verification`);
   `user_keys(user_id, wrapped_key, key_version)`;
   `sort_runs(id, user_id, client_run_id, created_at, counts_json, payload, scheme, key_version)`;
   `settings(user_id, payload, scheme, key_version, updated_at)`.
-  Открытым текстом: id, даты, счётчики sorted/skipped/errors. Имена/категории — только в блобе.
+  In plaintext: ids, dates, and the sorted/skipped/errors counters. Names/categories live in the blob only.
 - API: `POST /api/runs`, `GET /api/runs?since=`, `GET /api/runs/:id`, `DELETE /api/runs/:id`,
-  `GET/PUT /api/settings`. Всё под сессией; чужие id не видны.
-- `server/keygen.ts` — генерация мастер-ключа для self-host.
+  `GET/PUT /api/settings`. All behind a session; other users' ids are not visible.
+- `server/keygen.ts` — master key generation for self-host.
 
-### Клиент
+### Client
 
-- `src/lib/sync/store.ts` — IndexedDB: `runs`, `settings`, `outbox`; чистая логика слияния
-  и очереди вынесена в `src/lib/sync/merge.ts` с тестами (append-only runs, LWW settings,
-  повторные отправки идемпотентны по `client_run_id`).
-- `src/lib/sync/client.ts` — fetch-обёртка к API, ретраи с backoff (детали — строителю).
-- UI в `App.svelte`/новых компонентах: панель аккаунта (вход/регистрация/выход),
-  переключатель синхронизации с текстом приватности, история прогонов (отчёт, счётчики,
-  удаление), статус синхронизации. Строки — русские, цвета — токены.
-- При включении синхронизации локальные прогоны отправляются один раз (явное согласие
-  текстом переключателя). Без аккаунта переключатель недоступен.
+- `src/lib/sync/store.ts` — IndexedDB: `runs`, `settings`, `outbox`; pure merge and queue logic
+  moved to `src/lib/sync/merge.ts` with tests (append-only runs, LWW settings,
+  retries idempotent by `client_run_id`).
+- `src/lib/sync/client.ts` — fetch wrapper for the API, retries with backoff (details to the builder).
+- UI in `App.svelte`/new components: account panel (sign in/sign up/sign out),
+  sync toggle with privacy text, run history (report, counters,
+  deletion), sync status. Strings are English, colors are tokens.
+- When sync is enabled, local runs are sent once (explicit consent via the toggle's text).
+  Without an account the toggle is unavailable.
 
-### Приватность (строки UI, черновик)
+### Privacy (UI strings, draft)
 
-«Фотографии не покидают устройство. Названия файлов и категории сохраняются на сервере
-в зашифрованном виде; оператор сервера имеет к ним доступ. Синхронизация выключена,
-пока вы не включите её сами.»
+"Photos never leave your device. File names and categories are stored encrypted on the server; the server operator has access to them. Sync is off until you turn it on yourself."
 
-## Что остаётся строителю
+## Left to the builder
 
-- Точная проводка better-auth с `bun:sqlite` (адаптер/диалект) и миграции его таблиц.
-- Схема IndexedDB, индексы, детали outbox/backoff.
-- Верстка панели аккаунта и истории, состояния загрузки/ошибок.
-- Dockerfile, пример деплоя, бэкап-инструкция для self-host.
-- Список тестов сверх обязательных: crypto round-trip/tamper, merge-логика, API-квоты.
-- Ротация мастер-ключа: скрипт rewrap по `key_version` (формат уже поддерживает).
+- Exact better-auth wiring with `bun:sqlite` (adapter/dialect) and migrations for its tables.
+- IndexedDB schema, indexes, outbox/backoff details.
+- Layout of the account panel and history, loading/error states.
+- Dockerfile, deployment example, backup instructions for self-host.
+- A list of tests beyond the mandatory ones: crypto round-trip/tamper, merge logic, API quotas.
+- Master key rotation: a rewrap script by `key_version` (the format already supports it).

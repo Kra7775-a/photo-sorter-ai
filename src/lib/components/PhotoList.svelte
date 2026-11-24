@@ -20,7 +20,7 @@
       />
       <div class="flex min-w-0 flex-1 flex-col gap-1">
         <span class="truncate text-sm font-medium text-ink">{item.name}</span>
-        <span class="text-xs text-ink-muted">{item.ms} мс</span>
+        <span class="text-xs text-ink-muted">{item.ms} ms</span>
         <div class="flex flex-wrap gap-2">
           {#each item.scores as score (score.label)}
             <span class="rounded-full bg-accent-soft px-2 py-0.5 text-xs text-ink">

@@ -6,6 +6,7 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 
 - Package manager: Bun only (`bun.lock`). `bunfig.toml` sets `exact = true`: don't replace exact dependency versions with ranges.
 - `bun run dev` — Vite at `http://localhost:3000`; `strictPort` is on, so dev fails if the port is already in use.
+- `bun run dev:all` — Vite + Bun API in one process group; `/api` is proxied from 3000 to 3001.
 - `bun run validate` — required gate: `format:check → lint → typecheck → check → test → build`. Run it before considering work done.
 - Single file: `bun test src/lib/archive/sort.test.ts`; single test: `bun test -t "writes the report"`. Tests use `bun:test`, live next to the code, `*.test.ts`.
 - `bun run test:coverage` — 90% lines/functions threshold.
@@ -19,7 +20,7 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 - The worker processes requests sequentially (`queue`): ONNX sessions are not reentrant. `progress` messages are global, without `id`; `result`/`error` are matched by `id`. Message shapes are in `protocol.ts` — change them consistently.
 - `sortArchive` reads the ZIP one file at a time and streams the result via `client-zip`. `@zip.js/zip.js` is lazy-loaded from `zip-core-native`; `zip-core.d.ts` is a local type shim for that subpath. Don't replace streaming with in-memory extraction.
 - ZIP contract: category folders, name deduplication with ` (2)`, `report.csv` with BOM and CRLF; HEIC/TIFF and non-images are skipped, errors go into the report. If you change behavior, update tests and README.
-- The `Xenova/mobileclip_b` model (q8, ~145 MB) is downloaded from Hugging Face on first run and cached by the browser. The text encoder is English-only: categories must be English, prompt `a photo of <label>`. The UI is Russian, but categories must not be translated.
+- The `Xenova/mobileclip_b` model (q8, ~145 MB) is downloaded from Hugging Face on first run and cached by the browser. The text encoder is English-only: categories must be English, prompt `a photo of <label>`. The UI is English, but categories must not be translated.
 - The PWA precaches the shell; the ORT `.wasm` (26.9 MB) is cached at runtime because it exceeds Cloudflare's 25 MB limit. `dist/` is a static deploy.
 
 ## Conventions
@@ -30,4 +31,4 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 - `.agents/skills/*` are vendored skills tracked by `skills-lock.json`; don't edit them by hand. They are excluded from lint/format/Tailwind. Use these skills when working with Svelte and Transformers.js.
 - Coverage only counts modules imported by tests; `worker.ts`, `main.ts`, and `.svelte` files are excluded in `bunfig.toml`. New branches in `engine.ts`, `ranking.ts`, `archive/*` need tests; verify the worker and UI in the browser.
 - Test scripts use `--pass-with-no-tests`: a typo in the filter or file name exits 0 with no tests run.
-- Code, identifiers, and comments are English; UI strings are Russian.
+- Code, identifiers, and comments are English; UI strings are English.

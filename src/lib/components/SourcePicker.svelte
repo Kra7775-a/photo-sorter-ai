@@ -37,7 +37,7 @@
 <div class="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
   <div class="flex flex-col gap-1">
     <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-ink">Отдельные фотографии</span>
+      <span class="text-sm font-medium text-ink">Individual photos</span>
       <input
         type="file"
         accept="image/*"
@@ -51,10 +51,10 @@
 
   <div class="flex flex-col gap-1 border-t border-line pt-3">
     <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-ink">Или ZIP-архив</span>
+      <span class="text-sm font-medium text-ink">Or a ZIP archive</span>
       <span class="text-xs text-ink-muted">
-        Фото пройдут классификацию и вернутся в новом архиве, разложенные по папкам категорий. В
-        корень добавится report.csv с результатами.
+        Photos are classified and returned in a new archive, sorted into category folders. A
+        report.csv with the results is added to the root.
       </span>
       <input
         type="file"
@@ -67,6 +67,6 @@
   </div>
 
   {#if pending > 0}
-    <span class="text-sm text-ink-muted" aria-live="polite">в работе: {pending}</span>
+    <span class="text-sm text-ink-muted" aria-live="polite">processing: {pending}</span>
   {/if}
 </div>

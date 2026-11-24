@@ -145,7 +145,7 @@ describe("createSorterController", () => {
 
     await h.controller.classifyFiles([photo("a.jpg")], []);
 
-    expect(h.last().failure).toBe("Добавьте хотя бы одну категорию");
+    expect(h.last().failure).toBe("Add at least one category");
     expect(h.classify).not.toHaveBeenCalled();
     expect(h.last().pending).toBe(0);
   });
@@ -255,7 +255,7 @@ describe("createSorterController", () => {
     const run = await h.controller.sortArchiveFile(photo("holiday.zip"), []);
 
     expect(run).toBeNull();
-    expect(h.last().failure).toBe("Добавьте хотя бы одну категорию");
+    expect(h.last().failure).toBe("Add at least one category");
     expect(h.sortArchive).not.toHaveBeenCalled();
   });
 

@@ -8,10 +8,10 @@
 </script>
 
 <label class="flex flex-col gap-2">
-  <span class="text-sm font-medium text-ink">Категории — по одной на строку</span>
+  <span class="text-sm font-medium text-ink">Categories — one per line</span>
   <span class="text-xs text-ink-muted">
-    только английский: текстовый энкодер MobileCLIP англоязычный, русские слова дают случайные
-    результаты
+    English only: MobileCLIP's text encoder understands English, so words in other languages give
+    random results
   </span>
   <textarea
     {value}

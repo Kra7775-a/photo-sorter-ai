@@ -110,7 +110,7 @@ export function createSorterController(deps: SorterDeps): SorterController {
     }
 
     if (labels.length === 0) {
-      failure = "Добавьте хотя бы одну категорию";
+      failure = "Add at least one category";
       emit();
       return;
     }
@@ -156,7 +156,7 @@ export function createSorterController(deps: SorterDeps): SorterController {
     }
 
     if (labels.length === 0) {
-      failure = "Добавьте хотя бы одну категорию";
+      failure = "Add at least one category";
       emit();
       return null;
     }

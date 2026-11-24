@@ -126,7 +126,7 @@
           sessionEmail = null;
           syncEnabled = false;
           localStorage.setItem(SYNC_PREF_KEY, "false");
-          authError = "Сессия истекла. Войдите в аккаунт снова.";
+          authError = "Session expired. Please sign in again.";
           void controller?.stop();
         },
       });
@@ -181,7 +181,7 @@
       const result = await authClient.signIn.email({ email, password });
 
       if (result.error) {
-        authError = result.error.message ?? "Не удалось войти.";
+        authError = result.error.message ?? "Failed to sign in.";
         return;
       }
       sessionEmail = result.data?.user.email ?? null;
@@ -205,7 +205,7 @@
       });
 
       if (result.error) {
-        authError = result.error.message ?? "Не удалось зарегистрироваться.";
+        authError = result.error.message ?? "Failed to create an account.";
         return;
       }
       sessionEmail = result.data?.user.email ?? null;
@@ -243,7 +243,7 @@
       const result = await authClient.deleteUser({ password });
 
       if (result.error) {
-        authError = result.error.message ?? "Не удалось удалить аккаунт.";
+        authError = result.error.message ?? "Failed to delete account.";
         return;
       }
 
@@ -321,7 +321,7 @@
 <main class="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-6">
   <header class="flex flex-col gap-1">
     <h1 class="text-2xl font-semibold tracking-tight text-ink">AI Photo Sorter</h1>
-    <p class="text-sm text-ink-muted">MobileCLIP-B · инференс локально, файлы никуда не уходят</p>
+    <p class="text-sm text-ink-muted">MobileCLIP-B · runs locally, files never leave your device</p>
   </header>
 
   <AccountPanel
@@ -351,10 +351,10 @@
 
   {#if archiveProgress}
     <ProgressPanel
-      label="Сортировка архива"
+      label="Sorting archive"
       percent={sorterState.archivePercent}
       valueNow={sorterState.archivePercent}
-      caption={`${archiveProgress.done} / ${archiveProgress.total || "…"} · ${archiveProgress.current || "читаю архив…"}`}
+      caption={`${archiveProgress.done} / ${archiveProgress.total || "…"} · ${archiveProgress.current || "reading archive…"}`}
     />
   {/if}
 
@@ -364,10 +364,10 @@
 
   {#if sorterState.loadingModel}
     <ProgressPanel
-      label="Загрузка модели"
+      label="Loading model"
       percent={sorterState.percent}
       valueNow={sorterState.percent}
-      caption={`модель: ${sorterState.percent}%`}
+      caption={`model: ${sorterState.percent}%`}
     />
   {/if}
 
@@ -379,7 +379,7 @@
 
   {#if sorterState.items.length === 0 && sorterState.pending === 0 && !sorterState.failure && !recordError && !archiveResult && !archiveProgress}
     <p class="text-sm text-ink-muted">
-      Выберите фотографии или ZIP-архив — при первом запуске модель скачает ~145 МБ.
+      Choose photos or a ZIP archive — the model downloads ~145 MB on first run.
     </p>
   {/if}
 

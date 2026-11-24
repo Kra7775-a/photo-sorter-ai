@@ -18,17 +18,17 @@
       download={result.name}
       class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent transition outline-none hover:bg-accent-strong focus-visible:ring-2 focus-visible:ring-focus"
     >
-      Скачать {result.name}
+      Download {result.name}
     </a>
     <span class="text-xs text-ink-muted tabular-nums">
-      отсортировано: {result.counts.sorted} · пропущено: {result.counts.skipped} · ошибок:
+      sorted: {result.counts.sorted} · skipped: {result.counts.skipped} · errors:
       {result.counts.errors}
     </span>
   </div>
 
   {#if result.failures.length > 0}
     <details class="text-xs">
-      <summary class="cursor-pointer text-ink-muted">Файлы с ошибками</summary>
+      <summary class="cursor-pointer text-ink-muted">Files with errors</summary>
       <ul class="mt-2 flex flex-col gap-1">
         {#each result.failures as issue (issue.source)}
           <li class="break-all">
