@@ -11,7 +11,7 @@
 
 <div class="flex flex-col gap-1">
   <div
-    class="h-1 w-full overflow-hidden rounded bg-line"
+    class="h-1 w-full overflow-hidden rounded-full bg-line"
     role="progressbar"
     aria-label={label}
     aria-valuemin={0}

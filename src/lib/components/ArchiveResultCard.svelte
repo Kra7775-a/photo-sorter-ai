@@ -20,7 +20,7 @@
     >
       Скачать {result.name}
     </a>
-    <span class="text-xs text-ink-muted">
+    <span class="text-xs text-ink-muted tabular-nums">
       отсортировано: {result.counts.sorted} · пропущено: {result.counts.skipped} · ошибок:
       {result.counts.errors}
     </span>

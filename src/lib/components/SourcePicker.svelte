@@ -36,15 +36,17 @@
 
 <div class="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
   <div class="flex flex-col gap-1">
-    <span class="text-sm font-medium text-ink">Отдельные фотографии</span>
-    <input
-      type="file"
-      accept="image/*"
-      multiple
-      class={fileInputClass}
-      {disabled}
-      onchange={pickPhotos}
-    />
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium text-ink">Отдельные фотографии</span>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        class={fileInputClass}
+        {disabled}
+        onchange={pickPhotos}
+      />
+    </label>
   </div>
 
   <div class="flex flex-col gap-1 border-t border-line pt-3">

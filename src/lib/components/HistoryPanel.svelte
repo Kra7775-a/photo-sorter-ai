@@ -70,7 +70,7 @@
               type="button"
               onclick={() => void toggle(run.clientRunId)}
               aria-expanded={expanded.has(run.clientRunId)}
-              class="flex min-w-0 flex-col gap-1 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              class="flex min-w-0 flex-col gap-1 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               <span class="truncate text-sm font-medium text-ink">{run.sourceName}</span>
               <span class="text-xs text-ink-muted">{formatDate(run.createdAt)}</span>
@@ -83,7 +83,7 @@
               <button
                 type="button"
                 onclick={() => onDelete(run)}
-                class="rounded text-xs text-ink-muted underline transition outline-none hover:text-danger focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
+                class="inline-flex min-h-6 min-w-6 items-center justify-center rounded-lg px-1 text-xs text-ink-muted underline transition outline-none hover:text-danger focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={busy}
               >
                 Удалить
@@ -91,7 +91,7 @@
             </div>
           </div>
 
-          <p class="mt-2 text-xs text-ink-muted">
+          <p class="mt-2 text-xs text-ink-muted tabular-nums">
             отсортировано: {run.counts.sorted} · пропущено: {run.counts.skipped} · ошибок:
             {run.counts.errors}
           </p>

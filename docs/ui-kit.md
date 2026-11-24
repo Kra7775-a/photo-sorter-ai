@@ -5,6 +5,7 @@
 ## Правила
 
 - Только семантические токены (`text-ink`, `bg-panel`, `bg-accent`, `border-line`, `ring-focus`, …). Никаких hex и сырых tailwind-цветов.
+- **Shape lock:** actions и inputs — `rounded-lg` (8px), cards/dialogs — `rounded-xl` (12px), chips/badges/progress — `rounded-full`. Других радиусов нет.
 - Каждый компонент сам содержит `tv()`-рецепт и типы вариантов в своём `<script module>`.
 - Svelte 5 runes, `$props()`, `$bindable()` для управляемого состояния.
 
