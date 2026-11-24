@@ -122,6 +122,10 @@ bun run keygen   # печатает ключ: скопируйте его в SYN
 SYNC_MASTER_KEY=<ключ> BETTER_AUTH_SECRET=<секрет> bun run start
 ```
 
+Ротация мастер-ключа: сгенерируйте новый `SYNC_MASTER_KEY`, затем
+`OLD_SYNC_MASTER_KEY=<старый> SYNC_MASTER_KEY=<новый> bun run rewrap` — перешифрует ключи
+пользователей без потери данных.
+
 Для разработки есть `bun run dev:server` (watch-режим). Секреты хранятся только в окружении,
 в репозиторий они не попадают; потеря `SYNC_MASTER_KEY` означает потерю доступа к зашифрованным
 данным.

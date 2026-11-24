@@ -5,6 +5,7 @@ export type SyncClient = {
   pullRuns(since: number): Promise<SyncRun[]>;
   getRun(serverId: string): Promise<SyncRun>;
   deleteRun(serverId: string): Promise<void>;
+  deleteRunByClientId(clientRunId: string): Promise<void>;
   pushSettings(settings: SyncSettings): Promise<SyncSettings>;
   pullSettings(): Promise<SyncSettings | null>;
 };
@@ -156,6 +157,12 @@ export function createSyncClient(opts: { baseUrl: string; fetchImpl?: typeof fet
 
     async deleteRun(serverId) {
       await request<void>(`/api/runs/${encodeURIComponent(serverId)}`, { method: "DELETE" });
+    },
+
+    async deleteRunByClientId(clientRunId) {
+      await request<void>(`/api/runs/client/${encodeURIComponent(clientRunId)}`, {
+        method: "DELETE",
+      });
     },
 
     async pushSettings(settings) {

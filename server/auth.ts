@@ -17,6 +17,19 @@ export function createAuth(db: Database, config: Config) {
     emailAndPassword: { enabled: true },
     emailVerification: { sendOnSignUp: false },
     telemetry: { enabled: false },
+    user: { deleteUser: { enabled: true } },
+    databaseHooks: {
+      user: {
+        delete: {
+          before: async (user) => {
+            // No FK cascade exists: app tables are keyed by user_id strings.
+            db.query("DELETE FROM sort_runs WHERE user_id = ?").run(user.id);
+            db.query("DELETE FROM settings WHERE user_id = ?").run(user.id);
+            db.query("DELETE FROM user_keys WHERE user_id = ?").run(user.id);
+          },
+        },
+      },
+    },
   });
 }
 

@@ -135,7 +135,8 @@
       await controller.load();
 
       // With sync off there is not even an auth request: zero /api traffic.
-      if (syncEnabled) {
+      // With a stale "on" flag but no session cookie, still make no request.
+      if (syncEnabled && document.cookie.includes("better-auth.session_token=")) {
         const { data } = await authClient.getSession();
 
         if (destroyed) {
@@ -165,6 +166,13 @@
     return error instanceof Error ? error.message : String(error);
   }
 
+  async function startSyncIfEnabled(): Promise<void> {
+    if (syncEnabled && sessionEmail !== null) {
+      await controller?.queueAll();
+      await controller?.sync();
+    }
+  }
+
   async function signIn(email: string, password: string): Promise<void> {
     authBusy = true;
     authError = null;
@@ -177,6 +185,7 @@
         return;
       }
       sessionEmail = result.data?.user.email ?? null;
+      await startSyncIfEnabled();
     } catch (error) {
       authError = messageOf(error);
     } finally {
@@ -200,6 +209,7 @@
         return;
       }
       sessionEmail = result.data?.user.email ?? null;
+      await startSyncIfEnabled();
     } catch (error) {
       authError = messageOf(error);
     } finally {
@@ -223,6 +233,29 @@
     syncEnabled = false;
     localStorage.setItem(SYNC_PREF_KEY, "false");
     await controller?.stop();
+  }
+
+  async function deleteAccount(password: string): Promise<void> {
+    authBusy = true;
+    authError = null;
+
+    try {
+      const result = await authClient.deleteUser({ password });
+
+      if (result.error) {
+        authError = result.error.message ?? "Не удалось удалить аккаунт.";
+        return;
+      }
+
+      sessionEmail = null;
+      syncEnabled = false;
+      localStorage.setItem(SYNC_PREF_KEY, "false");
+      await controller?.stop();
+    } catch (error) {
+      authError = messageOf(error);
+    } finally {
+      authBusy = false;
+    }
   }
 
   async function setSync(next: boolean): Promise<void> {
@@ -299,6 +332,7 @@
     onSignIn={signIn}
     onSignUp={signUp}
     onSignOut={signOut}
+    onDeleteAccount={deleteAccount}
     onSyncChange={(next) => void setSync(next)}
   />
 
@@ -356,5 +390,6 @@
     statuses={runStatuses}
     busy={historyBusy}
     onDelete={(run) => deleteRun(run)}
+    onDetails={(run) => controller?.loadDetails(run) ?? Promise.resolve()}
   />
 </main>

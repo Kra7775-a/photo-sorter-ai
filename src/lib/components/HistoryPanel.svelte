@@ -7,9 +7,10 @@
     statuses: Record<string, RunStatus>;
     busy: boolean;
     onDelete: (run: SyncRun) => Promise<void>;
+    onDetails: (run: SyncRun) => Promise<void>;
   };
 
-  let { runs, statuses, busy, onDelete }: Props = $props();
+  let { runs, statuses, busy, onDelete, onDetails }: Props = $props();
 
   const STATUS_TEXT: Record<RunStatus, string> = {
     local: "локально",
@@ -21,13 +22,18 @@
   const ordered = $derived([...runs].sort((left, right) => right.createdAt - left.createdAt));
   let expanded = $state<Set<string>>(new Set());
 
-  function toggle(id: string): void {
+  async function toggle(id: string): Promise<void> {
     const next = new Set(expanded);
 
     if (next.has(id)) {
       next.delete(id);
     } else {
       next.add(id);
+      const run = runs.find((item) => item.clientRunId === id);
+
+      if (run !== undefined) {
+        await onDetails(run);
+      }
     }
     expanded = next;
   }
@@ -62,7 +68,7 @@
           <div class="flex flex-wrap items-start justify-between gap-2">
             <button
               type="button"
-              onclick={() => toggle(run.clientRunId)}
+              onclick={() => void toggle(run.clientRunId)}
               aria-expanded={expanded.has(run.clientRunId)}
               class="flex min-w-0 flex-col gap-1 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >

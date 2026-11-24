@@ -7,11 +7,21 @@
     onSignIn: (email: string, password: string) => Promise<void>;
     onSignUp: (email: string, password: string) => Promise<void>;
     onSignOut: () => Promise<void>;
+    onDeleteAccount: (password: string) => Promise<void>;
     onSyncChange: (enabled: boolean) => void;
   };
 
-  let { email, syncEnabled, busy, error, onSignIn, onSignUp, onSignOut, onSyncChange }: Props =
-    $props();
+  let {
+    email,
+    syncEnabled,
+    busy,
+    error,
+    onSignIn,
+    onSignUp,
+    onSignOut,
+    onDeleteAccount,
+    onSyncChange,
+  }: Props = $props();
 
   // Exact wording from the design spec: honest about server-side encryption and
   // the operator's access, and explicit that sync is opt-in.
@@ -120,6 +130,42 @@
         Выйти
       </button>
     </div>
+
+    <details class="rounded-lg border border-line p-3 text-xs">
+      <summary
+        class="cursor-pointer text-ink-muted outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      >
+        Удалить аккаунт и данные на сервере
+      </summary>
+      <p class="mt-2 text-ink-muted">
+        Локальная история останется на этом устройстве. Для подтверждения введите пароль.
+      </p>
+      <form
+        class="mt-2 flex flex-col gap-2"
+        onsubmit={(event) => {
+          event.preventDefault();
+          if (password) {
+            void onDeleteAccount(password);
+          }
+        }}
+      >
+        <input
+          type="password"
+          bind:value={password}
+          placeholder="Пароль"
+          aria-label="Пароль для удаления аккаунта"
+          class={inputClass}
+          disabled={busy}
+        />
+        <button
+          type="submit"
+          class="rounded-lg bg-danger px-3 py-1.5 font-medium text-on-accent outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+          disabled={busy || password === ""}
+        >
+          Удалить безвозвратно
+        </button>
+      </form>
+    </details>
 
     <label class="flex cursor-pointer items-start gap-3 rounded-lg bg-accent-soft p-3">
       <input

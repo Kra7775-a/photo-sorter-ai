@@ -213,6 +213,21 @@ export function registerRunRoutes(app: Elysia, deps: RunDeps): void {
     return { ...toMeta(deps, session.userId, row), rows };
   });
 
+  // Registered before /api/runs/:id so Elysia does not treat "client" as an id.
+  app.delete("/api/runs/client/:clientRunId", async ({ request, params }) => {
+    const session = await deps.getSession(request);
+    if (!session) {
+      return jsonError(401, "unauthorized");
+    }
+    const result = deps.db
+      .query("DELETE FROM sort_runs WHERE client_run_id = ? AND user_id = ?")
+      .run(params.clientRunId, session.userId);
+    if (result.changes === 0) {
+      return jsonError(404, "not_found");
+    }
+    return new Response(null, { status: 204 });
+  });
+
   app.delete("/api/runs/:id", async ({ request, params }) => {
     const session = await deps.getSession(request);
     if (!session) {

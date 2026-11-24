@@ -31,6 +31,8 @@ export type SyncController = {
   stop(): Promise<void>;
   sync(): Promise<void>;
   deleteRun(run: SyncRun): Promise<void>;
+  /** Fetches full report rows for a run whose list entry had none. */
+  loadDetails(run: SyncRun): Promise<void>;
 };
 
 /**
@@ -41,6 +43,9 @@ export type SyncController = {
 export function createSyncController(deps: SyncControllerDeps): SyncController {
   let runs: SyncRun[] = [];
   let outbox = new Set<string>();
+  // Deletions made while offline must survive until the next sync, otherwise
+  // pullRuns() brings the server copy back and the run "resurrects".
+  const deleted = new Set<string>();
   const failed = new Set<string>();
   let settings: SyncSettings | null = null;
   let notice: string | null = null;
@@ -54,6 +59,11 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
     }
 
     return run.serverId === undefined ? "local" : "synced";
+  }
+
+  function persistOutbox(): Promise<void> {
+    const ids = [...outbox, ...[...deleted].map((id) => `delete:${id}`)];
+    return deps.store.setOutbox(ids);
   }
 
   function snapshot(): void {
@@ -98,7 +108,12 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
     ]);
 
     runs = storedRuns;
-    outbox = new Set(storedOutbox);
+    outbox = new Set(storedOutbox.filter((id) => !id.startsWith("delete:")));
+    for (const id of storedOutbox) {
+      if (id.startsWith("delete:")) {
+        deleted.add(id.slice("delete:".length));
+      }
+    }
     settings = storedSettings;
 
     if (settings !== null) {
@@ -113,7 +128,8 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
 
     if (deps.canSync()) {
       outbox.add(run.clientRunId);
-      await deps.store.setOutbox([...outbox]);
+      deleted.delete(run.clientRunId);
+      await persistOutbox();
     }
     snapshot();
 
@@ -153,14 +169,14 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
         outbox.add(run.clientRunId);
       }
     }
-    await deps.store.setOutbox([...outbox]);
+    await persistOutbox();
     snapshot();
   }
 
   async function stop(): Promise<void> {
     outbox.clear();
     failed.clear();
-    await deps.store.setOutbox([]);
+    await persistOutbox();
     snapshot();
   }
 
@@ -172,6 +188,23 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
     notice = null;
 
     try {
+      // Push offline deletions first, before any pull can restore the rows.
+      for (const id of deleted) {
+        if (!deps.canSync()) {
+          return;
+        }
+        try {
+          await deps.client.deleteRunByClientId(id);
+          deleted.delete(id);
+          await persistOutbox();
+        } catch (error) {
+          reportError(error, id);
+          if (error instanceof UnauthorizedError || error instanceof QuotaError) {
+            break;
+          }
+        }
+      }
+
       for (const id of outbox) {
         if (!deps.canSync()) {
           return;
@@ -199,7 +232,7 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
           }
         }
       }
-      await deps.store.setOutbox([...outbox]);
+      await persistOutbox();
 
       if (!deps.canSync()) {
         return;
@@ -235,11 +268,17 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
     if (deps.canSync() && run.serverId !== undefined) {
       try {
         await deps.client.deleteRun(run.serverId);
+        deleted.delete(run.clientRunId);
       } catch (error) {
         reportError(error);
         snapshot();
         return;
       }
+    } else {
+      // No server id (local-only) or no session: remember the intent and send
+      // it by clientRunId on the next sync so pullRuns cannot restore the run.
+      deleted.add(run.clientRunId);
+      await persistOutbox();
     }
 
     runs = runs.filter((item) => item.clientRunId !== run.clientRunId);
@@ -249,5 +288,15 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
     snapshot();
   }
 
-  return { load, recordRun, updateSettings, queueAll, stop, sync, deleteRun };
+  async function loadDetails(run: SyncRun): Promise<void> {
+    if (!deps.canSync() || run.serverId === undefined) {
+      return;
+    }
+    const full = await deps.client.getRun(run.serverId);
+    runs = mergeRuns(runs, [full]);
+    await deps.store.putRuns([full]);
+    snapshot();
+  }
+
+  return { load, recordRun, updateSettings, queueAll, stop, sync, deleteRun, loadDetails };
 }

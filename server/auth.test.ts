@@ -108,4 +108,43 @@ describe("email+password accounts", () => {
     const anonymous = await getSession(new Request(url("/api/runs")));
     expect(anonymous).toBeNull();
   });
+
+  test("deleting an account cascades to app metadata", async () => {
+    const signup = await post("/api/auth/sign-up/email", {
+      email: "delete-me@example.com",
+      password,
+      name: "Delete",
+    });
+    expect(signup.status).toBe(200);
+    const body = (await signup.json()) as AuthBody;
+    const cookie = cookieFrom(signup);
+    const id = body.user.id;
+
+    db.query("INSERT INTO user_keys (user_id, wrapped_key, key_version) VALUES (?, ?, 1)").run(
+      id,
+      "wrapped",
+    );
+    db.query(
+      "INSERT INTO settings (user_id, payload, scheme, key_version, updated_at) VALUES (?, ?, ?, 1, 1)",
+    ).run(id, "payload", "server-v1");
+
+    const res = await fetch(url("/api/auth/delete-user"), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie,
+        origin: `http://localhost:${server.port}`,
+      },
+      body: JSON.stringify({ password }),
+    });
+    expect(res.status).toBe(200);
+
+    for (const table of ["user", "user_keys", "settings", "sort_runs"]) {
+      const where = table === "user" ? "id = ?" : "user_id = ?";
+      const row = db.query(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`).get(id) as {
+        n: number;
+      };
+      expect(row.n).toBe(0);
+    }
+  });
 });

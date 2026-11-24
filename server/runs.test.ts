@@ -163,6 +163,26 @@ describe("sort-run API", () => {
     expect(ownerDelete.status).toBe(204);
   });
 
+  test("deletes another user's run by client id only for the owner", async () => {
+    const created = await post(api, "/api/runs", cookieA, makeRun(31));
+    const { id } = (await created.json()) as { id: string };
+    const run = makeRun(31);
+
+    const foreign = await fetch(`${api.baseUrl}/api/runs/client/${run.clientRunId}`, {
+      method: "DELETE",
+      headers: { cookie: cookieB },
+    });
+    expect(foreign.status).toBe(404);
+
+    const owner = await fetch(`${api.baseUrl}/api/runs/client/${run.clientRunId}`, {
+      method: "DELETE",
+      headers: { cookie: cookieA },
+    });
+    expect(owner.status).toBe(204);
+    const detail = await fetch(`${api.baseUrl}/api/runs/${id}`, { headers: { cookie: cookieA } });
+    expect(detail.status).toBe(404);
+  });
+
   test("enforces row, payload and run-count quotas with 413 JSON", async () => {
     const manyRows = makeRun(4, 20_001);
     const rows = await post(api, "/api/runs", cookieA, manyRows);

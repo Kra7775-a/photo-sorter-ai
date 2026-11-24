@@ -180,6 +180,16 @@ describe("createSyncClient", () => {
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
   });
 
+  test("deletes a run by client id so offline deletions cannot resurrect", async () => {
+    const fetchMock = fetchSpy();
+    fetchMock.mockImplementation(async () => new Response(null, { status: 204 }));
+    const client = createSyncClient({ baseUrl: BASE_URL });
+
+    expect(await client.deleteRunByClientId("client 1")).toBeUndefined();
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${BASE_URL}/api/runs/client/client%201`);
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
+  });
+
   test("maps null settings to null", async () => {
     const fetchMock = fetchSpy();
     fetchMock.mockImplementation(async () => new Response("null", { status: 200 }));

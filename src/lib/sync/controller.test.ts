@@ -61,9 +61,18 @@ function harness(initial: Partial<StoreState> = {}) {
   const pullRuns = mock<SyncClient["pullRuns"]>(async () => []);
   const getRun = mock<SyncClient["getRun"]>(async (id) => ({ ...run, serverId: id }));
   const deleteRun = mock<SyncClient["deleteRun"]>(async () => undefined);
+  const deleteRunByClientId = mock<SyncClient["deleteRunByClientId"]>(async () => undefined);
   const pushSettings = mock<SyncClient["pushSettings"]>(async (value) => value);
   const pullSettings = mock<SyncClient["pullSettings"]>(async () => null);
-  const client: SyncClient = { pushRun, pullRuns, getRun, deleteRun, pushSettings, pullSettings };
+  const client: SyncClient = {
+    pushRun,
+    pullRuns,
+    getRun,
+    deleteRun,
+    deleteRunByClientId,
+    pushSettings,
+    pullSettings,
+  };
 
   let canSync = false;
   let unauthorizedCalls = 0;
@@ -86,7 +95,9 @@ function harness(initial: Partial<StoreState> = {}) {
     state,
     pushRun,
     pullRuns,
+    getRun,
     deleteRun,
+    deleteRunByClientId,
     pushSettings,
     pullSettings,
     snapshots,
@@ -352,5 +363,37 @@ describe("createSyncController", () => {
 
     expect(h.last().notice).toBe("Не удалось синхронизировать данные.");
     expect(h.state.runs).toEqual([run]);
+  });
+
+  test("an offline deletion is propagated before the next pull", async () => {
+    const h = harness({ runs: [{ ...run, serverId: "srv-1" }] });
+
+    await h.controller.load();
+    await h.controller.deleteRun({ ...run, serverId: "srv-1" });
+    expect(h.state.runs).toEqual([]);
+    expect(h.state.outbox).toEqual(["delete:client-1"]);
+    expect(h.deleteRun).not.toHaveBeenCalled();
+
+    h.enable();
+    await h.controller.sync();
+
+    expect(h.deleteRunByClientId).toHaveBeenCalledWith("client-1");
+    expect(h.state.outbox).toEqual([]);
+    expect(h.state.runs).toEqual([]);
+  });
+
+  test("loadDetails fetches report rows from the server", async () => {
+    const rows: SyncRun["rows"] = [
+      { source: "a.jpg", category: "people", score: 0.9, status: "sorted", error: "" },
+    ];
+    const h = harness({ runs: [{ ...run, serverId: "srv-1" }] });
+
+    h.getRun.mockImplementation(async (id) => ({ ...run, serverId: id, rows }));
+    h.enable();
+    await h.controller.load();
+    await h.controller.loadDetails({ ...run, serverId: "srv-1" });
+
+    expect(h.getRun).toHaveBeenCalledWith("srv-1");
+    expect(h.state.runs[0]?.rows).toEqual(rows);
   });
 });
