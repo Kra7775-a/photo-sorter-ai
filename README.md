@@ -77,6 +77,7 @@ src/
   App.svelte              тонкий слой: auth/sync + композиция компонентов
   app.css                 Tailwind и семантические OKLCH-токены
   main.ts                 точка входа
+- `lib/ui/`                UI-kit на bits-ui + OKLCH-токенах (см. `docs/ui-kit.md`)
   lib/sorter/
     controller.ts         оркестратор фото/ZIP с внедрёнными зависимостями + тесты
   lib/components/
