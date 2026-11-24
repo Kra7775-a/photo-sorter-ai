@@ -23,7 +23,8 @@ bun run dev:server # API only on :3001
 bun run build      # production build into dist/
 bun run preview    # preview the build locally
 bun run test:coverage  # coverage (text + coverage/lcov.info)
-bun run test:mutation  # mutation tests (Stryker + Bun, ~15 min)
+bun run test:mutation     # full mutation tests (Stryker + Bun, ~15 min)
+bun run test:mutation:diff # incremental mutation tests (changed mutants only)
 bun run test:e2e       # Playwright E2E + visual regression
 bun run arch:check     # dependency-cruiser architecture rules
 bun run arch:graph     # dependency graph (Mermaid)
@@ -39,6 +40,18 @@ Full check before committing:
 bun run validate   # format:check + lint + arch:check + typecheck + check + test + build
 ```
 
+Quality and security tools (run separately, not part of `validate`):
+
+```bash
+bun run quality       # duplication, unused code, spelling, secrets, docs style
+bun run sast          # Semgrep if installed locally; CI always runs it
+bun run hooks:install # install Lefthook pre-commit hooks (fast checks only)
+```
+
+Lefthook's pre-commit hook runs `format:check`, `lint`, `arch:check`, `secrets` and `spell`;
+the full `validate`, E2E and mutation suites stay explicit. The Semgrep rules in `.semgrep.yml`
+forbid `eval`/`Function` in TypeScript source and `innerHTML` assignments in `src/**`.
+
 Bun only counts coverage for modules imported by tests. `worker.ts` and entry points are
 excluded in `bunfig.toml`; Svelte components are compiled by `svelte-loader.ts` and their
 component tests are included in the report. The percentages therefore cover modules that
@@ -51,11 +64,18 @@ DOM setup in `component-test.ts`. Feature shells are verified with svelte-check 
 get component tests later. Tests run with `--isolate`, so per-file DOM registration cannot leak
 into server or archive tests.
 
-Mutation tests are run with `bun run test:mutation`. Stryker uses the unofficial
+Mutation tests are run with `bun run test:mutation` (full, `--force`) or
+`bun run test:mutation:diff` (`--incremental`). Stryker uses the unofficial
 `stryker-mutator-bun-runner`; a local patch in `patches/` adapts it to Bun 1.4 (which no
 longer prints per-line results in non-TTY mode and no longer understands the old output
-format). The report is at `reports/mutation/mutation.html`; the `break` threshold in
-`stryker.conf.json` is 60%.
+format). The `json` reporter writes machine-readable results to `reports/mutation/mutation.json`;
+`scripts/mutation.ts` also copies timestamped snapshots into `reports/mutation/history/` so runs do
+not overwrite each other. The HTML report is at `reports/mutation/mutation.html`; the `break`
+threshold in `stryker.conf.json` is 60%.
+
+Incremental mode reuses results from `reports/stryker-incremental.json`. Because `coverageAnalysis`
+is `off`, it reliably detects changed mutants but cannot reliably tell which tests changed — run the
+full command before releases and the diff command during development.
 
 Architecture is enforced by dependency-cruiser (`arch:check`, included in `validate`). Its
 rules in `.dependency-cruiser.cjs` encode the decision in `docs/adr/0001-vertical-slices-architecture.md`:
@@ -64,6 +84,18 @@ cycles, `src ↔ server`, domain → UI, UI leaf, feature-scope leaks, component
 Playwright lives in `tests/e2e/` with fixtures in `tests/fixtures/`; it starts `dev:all`
 itself. First run after cloning: `bun x playwright install chromium`, then
 `bun run test:e2e --update-snapshots` to create the visual baselines.
+
+## CI
+
+Two GitHub Actions workflows run on push and pull requests to `main`:
+
+- `quality.yml` — `bun run validate` on Bun 1.4.4 plus `dup`, `unused`, `spell`, `secrets` and `docs:lint`.
+- `security.yml` — CodeQL, Semgrep (pinned `semgrep==1.186.0`), gitleaks and TruffleHog, with full git history for the secret scanners. It also runs weekly and can be triggered manually.
+
+External services are deliberately deferred: `renovate.json` and `sonar-project.properties` are
+committed but inactive. Renovate needs the GitHub App installed, SonarCloud needs a token and real
+`sonar.organization`/project key, and GitGuardian needs its GitHub App and credentials. No tokens
+are stored in this repository; the workflows use only `GITHUB_TOKEN`.
 
 ## How it works
 

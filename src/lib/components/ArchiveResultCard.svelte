@@ -3,6 +3,7 @@
   import Alert from "../ui/Alert.svelte";
   import Badge from "../ui/Badge.svelte";
   import Button from "../ui/Button.svelte";
+  import Icon from "../ui/Icon.svelte";
   import RunCounts from "./RunCounts.svelte";
 
   type Props = {
@@ -15,6 +16,7 @@
 <Alert tone="accent">
   <div class="flex flex-wrap items-center gap-3">
     <Button href={result.url} download={result.name} size="sm">
+      <Icon name="download" />
       Download {result.name}
     </Button>
     <Badge tone="accent">

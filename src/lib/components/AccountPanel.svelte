@@ -2,6 +2,7 @@
   import Alert from "../ui/Alert.svelte";
   import Button from "../ui/Button.svelte";
   import Card from "../ui/Card.svelte";
+  import Icon from "../ui/Icon.svelte";
   import Switch from "../ui/Switch.svelte";
   import TextField from "../ui/TextField.svelte";
 
@@ -113,7 +114,10 @@
     {:else}
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
         <span class="text-sm font-medium text-ink">Signed in</span>
-        <Button variant="outline" size="sm" onclick={onSignOut} disabled={busy}>Sign out</Button>
+        <Button variant="outline" size="sm" onclick={onSignOut} disabled={busy}>
+          <Icon name="signOut" />
+          Sign out
+        </Button>
       </div>
 
       <details class="rounded-lg border border-line p-3 text-xs">

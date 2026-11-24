@@ -2,13 +2,17 @@
 import { afterAll } from "bun:test";
 
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import type { IOptionalBrowserSettings } from "happy-dom";
+
+const settings: IOptionalBrowserSettings = {};
+const url = "http://localhost/";
 
 /**
  * Shared setup for component tests. Each test file gets its own isolated DOM,
  * so server and archive tests keep Node globals.
  */
 export async function setupComponentTest() {
-  GlobalRegistrator.register();
+  GlobalRegistrator.register({ url, settings });
   afterAll(() => {
     void GlobalRegistrator.unregister();
   });

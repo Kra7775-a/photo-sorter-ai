@@ -1,0 +1,45 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.ts",
+    "src/**/*.svelte",
+    "src/**/*.test.ts",
+    "server/main.ts",
+    "server/keygen.ts",
+    "server/rewrap.ts",
+    "server/**/*.test.ts",
+    "scripts/**/*.ts",
+    "tests/e2e/**/*.ts",
+    "playwright.config.ts",
+    "svelte-loader.ts",
+    ".dependency-cruiser.cjs"
+  ],
+  "project": [
+    "src/**/*.{ts,svelte,css}",
+    "server/**/*.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "*.ts",
+    "*.js",
+    "*.cjs",
+    "*.json"
+  ],
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    "dev-dist/**",
+    "coverage/**",
+    "reports/**",
+    ".stryker-tmp/**",
+    "test-results/**",
+    "playwright-report/**",
+    ".agents/**"
+  ],
+  "ignoreDependencies": [
+    "@cspell/dict-ru_ru",
+    "@secretlint/secretlint-rule-preset-recommend",
+    "@stryker-mutator/bun-runner"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "github-actions": true
+}

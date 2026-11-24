@@ -1,0 +1,35 @@
+name: Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Validate
+        run: bun run validate
+      - name: Check duplication
+        run: bun run dup
+      - name: Check unused code and dependencies
+        run: bun run unused
+      - name: Check spelling
+        run: bun run spell
+      - name: Check secrets
+        run: bun run secrets
+      - name: Lint documentation
+        run: bun run docs:lint

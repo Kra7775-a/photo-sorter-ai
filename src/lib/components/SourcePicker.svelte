@@ -1,6 +1,7 @@
 <script lang="ts">
   import Badge from "../ui/Badge.svelte";
   import Card from "../ui/Card.svelte";
+  import Icon from "../ui/Icon.svelte";
 
   type Props = {
     disabled: boolean;
@@ -40,7 +41,10 @@
 <Card padding="sm">
   <div class="flex flex-col gap-3">
     <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-ink">Individual photos</span>
+      <span class="inline-flex items-center gap-2 text-sm font-medium text-ink">
+        <Icon name="photos" />
+        Individual photos
+      </span>
       <input
         type="file"
         accept="image/*"
@@ -53,7 +57,10 @@
 
     <div class="flex flex-col gap-1 border-t border-line pt-3">
       <label class="flex flex-col gap-1">
-        <span class="text-sm font-medium text-ink">Or a ZIP archive</span>
+        <span class="inline-flex items-center gap-2 text-sm font-medium text-ink">
+          <Icon name="archive" />
+          Or a ZIP archive
+        </span>
         <span class="text-xs text-ink-muted">
           Photos are classified and returned in a new archive, sorted into category folders. A
           report.csv with the results is added to the root.

@@ -3,7 +3,9 @@
   "packageManager": "npm",
   "testRunner": "bun",
   "plugins": ["stryker-mutator-bun-runner"],
-  "reporters": ["progress", "clear-text", "html"],
+  "reporters": ["progress", "clear-text", "html", "json"],
+  "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
+  "incrementalFile": "reports/stryker-incremental.json",
   "coverageAnalysis": "off",
   "mutate": [
     "src/lib/**/*.ts",

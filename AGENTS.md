@@ -12,8 +12,10 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 - Single file: `bun test src/lib/archive/sort.test.ts`; single test: `bun test -t "writes the report"`. Tests use `bun:test`, live next to the code, `*.test.ts`.
 - `bun run test:coverage` — 90% lines/functions threshold. UI kit component tests live beside their components as `Component.svelte.test.ts`, use Bun's browser conditions + happy-dom via `svelte-loader.ts`, and run with `--isolate`. Feature shells are verified with svelte-check and E2E and can get component tests later.
 - `bun run test:e2e` — Playwright flows in `tests/e2e/`; install Chromium with `bun x playwright install chromium` once.
+- `bun run test:mutation` — full Stryker run (`--force`); `bun run test:mutation:diff` — incremental run with JSON reports in `reports/mutation/`.
 - `bun run typecheck` — built-in `bun check --no-script -b` (project references), not `tsc`. `bun run check` — separate `svelte-check`. Both are required.
-- No CI; `bun run validate` is the only automated check.
+- `bun run quality` — local duplication/unused/spelling/secrets/docs checks. `bun run sast` — Semgrep if installed locally (CI always runs it). `bun run hooks:install` — install Lefthook pre-commit hooks (fast checks only).
+- CI lives in `.github/workflows` (`quality.yml`, `security.yml`); `bun run validate` remains the required local gate.
 
 ## Architecture
 

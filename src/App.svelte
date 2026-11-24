@@ -18,6 +18,7 @@
   import { openStore } from "./lib/sync/store";
   import Alert from "./lib/ui/Alert.svelte";
   import Card from "./lib/ui/Card.svelte";
+  import Icon from "./lib/ui/Icon.svelte";
 
   let view = $state.raw<AppSnapshot>(emptyAppSnapshot());
   const app = createAppController({
@@ -49,7 +50,10 @@
 
 <main class="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-6">
   <header class="flex flex-col gap-1">
-    <h1 class="text-2xl font-semibold tracking-tight text-ink">AI Photo Sorter</h1>
+    <h1 class="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight text-ink">
+      <Icon name="brand" size={24} />
+      AI Photo Sorter
+    </h1>
     <p class="text-sm text-ink-muted">MobileCLIP-B · runs locally, files never leave your device</p>
   </header>
   <AccountPanel

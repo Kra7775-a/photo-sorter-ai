@@ -1,0 +1,25 @@
+{
+  // Pragmatic style for prose, plans and generated docs.
+  "config": {
+    "default": true,
+    "MD013": false, // line length: prose and code blocks are intentionally long
+    "MD031": false, // fences next to prose are fine in existing docs
+    "MD032": false, // plan checklists intentionally follow headings directly
+    "MD038": false, // ZIP contract uses literal names with leading spaces, e.g. ` (2)`
+    "MD040": false, // ASCII tree diagrams have no meaningful language
+    "MD060": false, // table alignment varies across hand-written docs
+  },
+  "ignores": [
+    "node_modules/**",
+    "dist/**",
+    "dev-dist/**",
+    "coverage/**",
+    "reports/**",
+    ".agents/**",
+    ".stryker-tmp/**",
+    "test-results/**",
+    "playwright-report/**",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+  ],
+}

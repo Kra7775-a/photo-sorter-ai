@@ -1,0 +1,12 @@
+pre-commit:
+  commands:
+    format:
+      run: bun run format:check
+    lint:
+      run: bun run lint
+    arch:
+      run: bun run arch:check
+    secrets:
+      run: bun run secrets
+    spell:
+      run: bun run spell

@@ -1,0 +1,16 @@
+{
+  "threshold": 3,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/dev-dist/**",
+    "**/coverage/**",
+    "**/reports/**",
+    "**/.stryker-tmp/**",
+    "**/test-results/**",
+    "**/playwright-report/**",
+    "**/.agents/**",
+    "**/generated/**"
+  ]
+}

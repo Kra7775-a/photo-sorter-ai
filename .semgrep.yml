@@ -1,0 +1,24 @@
+rules:
+  - id: no-eval-or-function
+    message: Do not use eval/Function in application code; user data must never be executed as code.
+    severity: ERROR
+    languages:
+      - typescript
+    paths:
+      include:
+        - src/**/*.ts
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: Function(...)
+      - pattern: new Function(...)
+
+  - id: no-innerhtml-assignment
+    message: Do not assign to innerHTML; build DOM nodes with safe APIs instead.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - src/**/*.ts
+        - src/**/*.svelte
+    pattern-regex: '\binnerHTML\s*=(?!=)'
