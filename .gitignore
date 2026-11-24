@@ -38,3 +38,7 @@ sync.db
 sync.db-journal
 sync.db-wal
 sync.db-shm
+
+# env
+.env
+!.env.example
