@@ -51,6 +51,8 @@
     "**/dist/**",
     "**/dev-dist/**",
     "**/coverage/**",
+    "**/test-results/**",
+    "**/playwright-report/**",
     "**/public/**",
     "**/bun.lock",
     "**/.agents/**",

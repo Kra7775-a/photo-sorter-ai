@@ -20,6 +20,7 @@ export type SyncStore = {
   putSettings(settings: SyncSettings): Promise<void>;
   getOutbox(): Promise<string[]>;
   setOutbox(ids: string[]): Promise<void>;
+  close(): void;
 };
 
 /** Opens the offline-first database; creating stores is the only version-1 migration. */
@@ -61,5 +62,6 @@ export async function openStore(): Promise<SyncStore> {
       await Promise.all(ids.map((id) => tx.store.put(id, id)));
       await tx.done;
     },
+    close: () => db.close(),
   };
 }

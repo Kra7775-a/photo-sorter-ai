@@ -7,9 +7,17 @@
     label?: string;
     description?: string;
     id?: string;
+    onchange?: (checked: boolean) => void;
   };
 
-  let { checked = $bindable(false), disabled = false, label, description, id }: Props = $props();
+  let {
+    checked = $bindable(false),
+    disabled = false,
+    label,
+    description,
+    id,
+    onchange,
+  }: Props = $props();
 
   const uid = $props.id();
   const rootId = $derived(id ?? uid);
@@ -32,6 +40,7 @@
   <SwitchUI.Root
     bind:checked
     {disabled}
+    onCheckedChange={(next) => onchange?.(next)}
     id={rootId}
     class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full border border-line bg-line transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-60 data-[state=checked]:border-accent data-[state=checked]:bg-accent"
     aria-labelledby={label ? labelId : undefined}

@@ -50,6 +50,7 @@ function memoryStore(initial: Partial<StoreState> = {}): { store: SyncStore; sta
     setOutbox: async (ids) => {
       state.outbox = [...ids];
     },
+    close: () => undefined,
   };
 
   return { store, state };

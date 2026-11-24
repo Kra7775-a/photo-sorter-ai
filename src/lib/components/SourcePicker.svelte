@@ -1,4 +1,7 @@
 <script lang="ts">
+  import Badge from "../ui/Badge.svelte";
+  import Card from "../ui/Card.svelte";
+
   type Props = {
     disabled: boolean;
     pending: number;
@@ -34,8 +37,8 @@
   }
 </script>
 
-<div class="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
-  <div class="flex flex-col gap-1">
+<Card padding="sm">
+  <div class="flex flex-col gap-3">
     <label class="flex flex-col gap-1">
       <span class="text-sm font-medium text-ink">Individual photos</span>
       <input
@@ -47,26 +50,26 @@
         onchange={pickPhotos}
       />
     </label>
-  </div>
 
-  <div class="flex flex-col gap-1 border-t border-line pt-3">
-    <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-ink">Or a ZIP archive</span>
-      <span class="text-xs text-ink-muted">
-        Photos are classified and returned in a new archive, sorted into category folders. A
-        report.csv with the results is added to the root.
-      </span>
-      <input
-        type="file"
-        accept=".zip,application/zip"
-        class={fileInputClass}
-        {disabled}
-        onchange={pickArchive}
-      />
-    </label>
-  </div>
+    <div class="flex flex-col gap-1 border-t border-line pt-3">
+      <label class="flex flex-col gap-1">
+        <span class="text-sm font-medium text-ink">Or a ZIP archive</span>
+        <span class="text-xs text-ink-muted">
+          Photos are classified and returned in a new archive, sorted into category folders. A
+          report.csv with the results is added to the root.
+        </span>
+        <input
+          type="file"
+          accept=".zip,application/zip"
+          class={fileInputClass}
+          {disabled}
+          onchange={pickArchive}
+        />
+      </label>
+    </div>
 
-  {#if pending > 0}
-    <span class="text-sm text-ink-muted" aria-live="polite">processing: {pending}</span>
-  {/if}
-</div>
+    {#if pending > 0}
+      <Badge tone="accent" live="polite">processing: {pending}</Badge>
+    {/if}
+  </div>
+</Card>

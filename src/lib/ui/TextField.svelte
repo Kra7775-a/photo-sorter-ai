@@ -26,6 +26,8 @@
     disabled?: boolean;
     type?: string;
     placeholder?: string;
+    required?: boolean;
+    autocomplete?: HTMLInputElement["autocomplete"];
     id?: string;
   };
 
@@ -37,6 +39,8 @@
     disabled = false,
     type = "text",
     placeholder,
+    required = false,
+    autocomplete,
     id,
   }: Props = $props();
 
@@ -59,6 +63,8 @@
     {type}
     {placeholder}
     {disabled}
+    {required}
+    {autocomplete}
     bind:value
     class={textFieldVariants({ invalid: Boolean(error) })}
     aria-invalid={error ? "true" : undefined}

@@ -29,12 +29,14 @@
   import type { Snippet } from "svelte";
 
   type Props = BadgeVariants & {
+    class?: string;
+    live?: "polite" | "assertive";
     children?: Snippet;
   };
 
-  let { tone = "neutral", size = "sm", children }: Props = $props();
+  let { tone = "neutral", size = "sm", class: className = "", live, children }: Props = $props();
 </script>
 
-<span class={badgeVariants({ tone, size })}>
+<span class={`${badgeVariants({ tone, size })} ${className}`} aria-live={live}>
   {@render children?.()}
 </span>

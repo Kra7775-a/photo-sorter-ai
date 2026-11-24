@@ -23,7 +23,10 @@ bun run dev:server # API only on :3001
 bun run build      # production build into dist/
 bun run preview    # preview the build locally
 bun run test:coverage  # coverage (text + coverage/lcov.info)
-bun run test:mutation  # mutation tests (Stryker + Bun, ~6 min)
+bun run test:mutation  # mutation tests (Stryker + Bun, ~15 min)
+bun run test:e2e       # Playwright E2E + visual regression
+bun run arch:check     # dependency-cruiser architecture rules
+bun run arch:graph     # dependency graph (Mermaid)
 ```
 
 `dev:all` needs the same env variables as the server (`SYNC_MASTER_KEY`,
@@ -33,18 +36,33 @@ defaults to `http://localhost:3000` so better-auth cookies work through the Vite
 Full check before committing:
 
 ```bash
-bun run validate   # format:check + lint + typecheck + check + test + build
+bun run validate   # format:check + lint + arch:check + typecheck + check + test + build
 ```
 
-Bun only counts coverage for modules imported by tests. `worker.ts`, Svelte components
-and entry points are excluded in `bunfig.toml`; the percentages in the report refer to
-modules that have tests.
+Bun only counts coverage for modules imported by tests. `worker.ts` and entry points are
+excluded in `bunfig.toml`; Svelte components are compiled by `svelte-loader.ts` and their
+component tests are included in the report. The percentages therefore cover modules that
+have tests.
+
+Component tests use Bun's `--conditions=browser`, a `.svelte` compiler preload
+(`svelte-loader.ts`) and `happy-dom`; `@testing-library/svelte` mounts components locally.
+Each component has its own `Component.svelte.test.ts` next to it, and shared DOM setup lives
+in `component-test.ts`. Tests run with `--isolate`, so per-file DOM registration cannot leak
+into server or archive tests.
 
 Mutation tests are run with `bun run test:mutation`. Stryker uses the unofficial
 `stryker-mutator-bun-runner`; a local patch in `patches/` adapts it to Bun 1.4 (which no
 longer prints per-line results in non-TTY mode and no longer understands the old output
 format). The report is at `reports/mutation/mutation.html`; the `break` threshold in
 `stryker.conf.json` is 60%.
+
+Architecture is enforced by dependency-cruiser (`arch:check`, included in `validate`). Its
+rules in `.dependency-cruiser.cjs` encode the decision in `docs/adr/0001-vertical-slices-architecture.md`:
+cycles, `src ↔ server`, domain → UI, UI leaf, feature-scope leaks, component scope, App.svelte as a composition root, no client barrel imports and server route/bootstrap separation are all forbidden. `arch:graph` prints a Mermaid graph of the current dependencies.
+
+Playwright lives in `tests/e2e/` with fixtures in `tests/fixtures/`; it starts `dev:all`
+itself. First run after cloning: `bun x playwright install chromium`, then
+`bun run test:e2e --update-snapshots` to create the visual baselines.
 
 ## How it works
 
@@ -80,10 +98,12 @@ noticeably improves short labels like `cat`.
 
 ```
 src/
-  App.svelte              thin layer: auth/sync + component composition
+  App.svelte              thin view: state from the app controller, composition only
   app.css                 Tailwind and semantic OKLCH tokens
   main.ts                 entry point
-- `lib/ui/`                UI kit on bits-ui + OKLCH tokens (see `docs/ui-kit.md`)
+  lib/app/
+    controller.ts         auth/sync/labels/ZIP orchestration + tests
+  lib/ui/                 UI kit on bits-ui + OKLCH tokens (see docs/ui-kit.md)
   lib/sorter/
     controller.ts         photo/ZIP orchestrator with injected dependencies + tests
   lib/components/
@@ -101,6 +121,9 @@ src/
   lib/archive/
     naming.ts             safe names, deduplication, report.csv + tests
     sort.ts               read ZIP → classify → new ZIP + tests
+tests/
+  e2e/                    Playwright flows + visual regression
+  fixtures/               ZIP/JPEG fixtures
 ```
 
 ## Deployment

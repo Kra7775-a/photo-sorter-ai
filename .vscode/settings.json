@@ -1,0 +1,146 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/out": true,
+    "**/coverage": true,
+    "**/.turbo": true,
+    "**/.nx": true,
+    "**/.cache": true
+  },
+
+  "search.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/out": true,
+    "**/coverage": true,
+    "**/.turbo": true,
+    "**/.nx": true,
+    "**/.cache": true
+  },
+
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "${capture}.test.ts, ${capture}.spec.ts",
+    "*.svelte": "${capture}.svelte.test.ts, ${capture}.svelte.spec.ts",
+    "*.module.ts": "${capture}.controller.ts, ${capture}.service.ts, ${capture}.repository.ts",
+    "package.json": "bun.lock, pnpm-lock.yaml, pnpm-workspace.yaml, package-lock.json",
+    ".env": ".env.*, .env.example",
+    "Dockerfile": ".dockerignore"
+  },
+
+  "search.useIgnoreFiles": true,
+  "search.smartCase": true,
+  "search.followSymlinks": false,
+
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+  "editor.formatOnType": false,
+  "editor.rulers": [100],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+
+  "files.associations": {
+    "*.prisma": "prisma",
+    "*.env": "dotenv",
+    "*.env.*": "dotenv",
+    "*.log": "plaintext",
+    "**/Dockerfile": "dockerfile",
+    "**/docker-compose*.yml": "dockercompose",
+    "**/docker-compose*.yaml": "dockercompose",
+    "**/tsconfig*.json": "jsonc"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false
+  },
+
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/out/**": true,
+    "**/coverage/**": true,
+    "**/.turbo/**": true,
+    "**/.nx/**": true
+  },
+
+  "editor.lineNumbers": "on",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.cursorBlinking": "smooth",
+  "editor.smoothScrolling": true,
+  "editor.renderLineHighlight": "gutter",
+  "editor.renderWhitespace": "selection",
+  "editor.guides.bracketPairs": "active",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.stickyScroll.enabled": true,
+  "editor.stickyScroll.maxLineCount": 3,
+  "editor.minimap.size": "proportional",
+  "editor.inlayHints.enabled": "on",
+  "editor.linkedEditing": true,
+  "editor.wordWrap": "off",
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "editor.suggest.preview": false,
+  "editor.suggestSelection": "first",
+  "editor.tabCompletion": "on",
+  "editor.multiCursorModifier": "alt",
+  "editor.codeLens": false,
+
+  "js/ts.tsserver.automaticTypeAcquisition.enabled": true,
+  "js/ts.updateImportsOnFileMove.enabled": "always",
+  "js/ts.suggest.autoImports": true,
+
+  "diffEditor.ignoreTrimWhitespace": false,
+  "diffEditor.maxComputationTime": 5000,
+  "merge-conflict.autoNavigateNextConflict.enabled": true,
+  "problems.autoReveal": true,
+  "problems.sortOrder": "severity",
+
+  "git.autofetch": true,
+  "git.autofetchPeriod": 180,
+  "git.pruneOnFetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.pullBeforeCheckout": true,
+  "git.openRepositoryInParentFolders": "never",
+  "scm.defaultViewMode": "tree",
+  "scm.diffDecorations": "all",
+
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+  "workbench.startupEditor": "welcomePage",
+  "workbench.tree.indent": 12,
+  "terminal.integrated.copyOnSelection": true,
+  "terminal.integrated.rightClickBehavior": "copyPaste",
+  "terminal.integrated.confirmOnExit": "never",
+  "terminal.integrated.confirmOnKill": "never",
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.enablePersistentSessions": true,
+  "terminal.integrated.shellIntegration.enabled": true,
+  "terminal.integrated.tabs.enabled": true,
+
+  "markdown.preview.scrollEditorWithPreview": true,
+  "emmet.showExpandedAbbreviation": "always"
+}

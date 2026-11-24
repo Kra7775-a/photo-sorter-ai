@@ -7,9 +7,11 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 - Package manager: Bun only (`bun.lock`). `bunfig.toml` sets `exact = true`: don't replace exact dependency versions with ranges.
 - `bun run dev` — Vite at `http://localhost:3000`; `strictPort` is on, so dev fails if the port is already in use.
 - `bun run dev:all` — Vite + Bun API in one process group; `/api` is proxied from 3000 to 3001.
-- `bun run validate` — required gate: `format:check → lint → typecheck → check → test → build`. Run it before considering work done.
+- `bun run validate` — required gate: `format:check → lint → arch:check → typecheck → check → test → build`. Run it before considering work done.
+- `bun run arch:check` — dependency-cruiser rules in `.dependency-cruiser.cjs`; `arch:graph` prints the dependency graph.
 - Single file: `bun test src/lib/archive/sort.test.ts`; single test: `bun test -t "writes the report"`. Tests use `bun:test`, live next to the code, `*.test.ts`.
-- `bun run test:coverage` — 90% lines/functions threshold.
+- `bun run test:coverage` — 90% lines/functions threshold. Component tests live beside components as `Component.svelte.test.ts`, use Bun's browser conditions + happy-dom via `svelte-loader.ts`, and run with `--isolate`.
+- `bun run test:e2e` — Playwright flows in `tests/e2e/`; install Chromium with `bun x playwright install chromium` once.
 - `bun run typecheck` — built-in `bun check --no-script -b` (project references), not `tsc`. `bun run check` — separate `svelte-check`. Both are required.
 - No CI; `bun run validate` is the only automated check.
 

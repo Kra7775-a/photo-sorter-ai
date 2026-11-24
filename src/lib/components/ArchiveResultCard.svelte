@@ -1,5 +1,8 @@
 <script lang="ts">
   import type { ArchiveView } from "../sorter/controller";
+  import Alert from "../ui/Alert.svelte";
+  import Badge from "../ui/Badge.svelte";
+  import Button from "../ui/Button.svelte";
 
   type Props = {
     result: ArchiveView;
@@ -8,22 +11,15 @@
   let { result }: Props = $props();
 </script>
 
-<div
-  class="flex flex-col gap-2 rounded-xl border border-accent-line bg-accent-soft p-4"
-  aria-live="polite"
->
+<Alert tone="accent">
   <div class="flex flex-wrap items-center gap-3">
-    <a
-      href={result.url}
-      download={result.name}
-      class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent transition outline-none hover:bg-accent-strong focus-visible:ring-2 focus-visible:ring-focus"
-    >
+    <Button href={result.url} download={result.name} size="sm">
       Download {result.name}
-    </a>
-    <span class="text-xs text-ink-muted tabular-nums">
-      sorted: {result.counts.sorted} · skipped: {result.counts.skipped} · errors:
-      {result.counts.errors}
-    </span>
+    </Button>
+    <Badge tone="accent" class="tabular-nums">
+      sorted: {result.counts.sorted} · skipped: {result.counts.skipped} · errors: {result.counts
+        .errors}
+    </Badge>
   </div>
 
   {#if result.failures.length > 0}
@@ -38,4 +34,4 @@
       </ul>
     </details>
   {/if}
-</div>
+</Alert>

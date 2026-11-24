@@ -27,6 +27,9 @@
     placeholder?: string;
     id?: string;
     rows?: number;
+    class?: string;
+    oninput?: (value: string) => void;
+    onchange?: (value: string) => void;
   };
 
   let {
@@ -38,6 +41,9 @@
     placeholder,
     id,
     rows = 4,
+    class: className = "",
+    oninput,
+    onchange,
   }: Props = $props();
 
   const uid = $props.id();
@@ -60,7 +66,9 @@
     {placeholder}
     {disabled}
     bind:value
-    class={textareaVariants({ invalid: Boolean(error) })}
+    oninput={(event) => oninput?.(event.currentTarget.value)}
+    onchange={(event) => onchange?.(event.currentTarget.value)}
+    class={`${textareaVariants({ invalid: Boolean(error) })} ${className}`}
     aria-invalid={error ? "true" : undefined}
     aria-describedby={describedBy}
     aria-label={label ? undefined : "Input field"}></textarea>

@@ -11,12 +11,15 @@
     "!**/*.test.ts",
     "!server/main.ts",
     "!server/index.ts",
+    "!server/keygen.ts",
+    "!server/rewrap.ts",
     "!src/lib/model/worker.ts"
   ],
   "thresholds": { "high": 85, "low": 70, "break": 60 },
   "concurrency": 2,
   "timeoutMS": 10000,
   "bun": {
-    "testFiles": ["**/*.test.ts"]
+    "testFiles": ["**/*.test.ts"],
+    "nodeArgs": ["--conditions=browser", "--isolate"]
   }
 }

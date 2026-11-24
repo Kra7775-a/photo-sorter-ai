@@ -62,9 +62,11 @@
 
   type Props = ButtonVariants & {
     href?: string;
+    download?: string;
     disabled?: boolean;
     loading?: boolean;
     type?: "button" | "submit" | "reset";
+    class?: string;
     onclick?: (event: MouseEvent) => void;
     children?: Snippet;
   };
@@ -74,19 +76,21 @@
     size = "md",
     tone = "accent",
     href,
+    download,
     disabled = false,
     loading = false,
     type = "button",
+    class: className = "",
     onclick,
     children,
   }: Props = $props();
 
-  const classes = $derived(buttonVariants({ variant, size, tone }));
+  const classes = $derived(`${buttonVariants({ variant, size, tone })} ${className}`);
 
   // bits-ui switches to an anchor when `href` is set: `type` is invalid there.
   const rootProps = $derived(
     href
-      ? { href, disabled, onclick, "aria-busy": loading || undefined }
+      ? { href, download, disabled, onclick, "aria-busy": loading || undefined }
       : { type, disabled, onclick, "aria-busy": loading || undefined },
   );
 </script>
