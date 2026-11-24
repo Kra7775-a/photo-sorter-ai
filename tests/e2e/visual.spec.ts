@@ -5,7 +5,6 @@ const SCREENSHOT_OPTIONS = { animations: "disabled" as const, maxDiffPixelRatio:
 test.describe("empty state visuals", () => {
   test("dark desktop", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
-    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "AI Photo Sorter" })).toBeVisible();
 
@@ -17,7 +16,6 @@ test.describe("empty state visuals", () => {
 
   test("light desktop", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
-    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "AI Photo Sorter" })).toBeVisible();
 
@@ -29,7 +27,6 @@ test.describe("empty state visuals", () => {
 
   test("dark mobile", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
-    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "AI Photo Sorter" })).toBeVisible();
 

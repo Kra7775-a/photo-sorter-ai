@@ -25,16 +25,22 @@ export default defineConfig({
     {
       name: "chromium-mobile",
       use: {
-        ...devices["Desktop Chrome"],
+        ...devices["iPhone 13"],
         browserName: "chromium",
         colorScheme: "dark",
-        viewport: { width: 390, height: 844 },
       },
     },
   ],
   webServer: {
     command: "bun run dev:all",
     url: "http://localhost:3000",
+    // Placeholders keep `/api` working from a clean clone; real secrets still win.
+    env: {
+      SYNC_MASTER_KEY:
+        process.env.SYNC_MASTER_KEY ??
+        Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64"),
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? "e2e-only-secret-not-for-production",
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

@@ -3,6 +3,7 @@
   import Alert from "../ui/Alert.svelte";
   import Badge from "../ui/Badge.svelte";
   import Button from "../ui/Button.svelte";
+  import RunCounts from "./RunCounts.svelte";
 
   type Props = {
     result: ArchiveView;
@@ -16,9 +17,8 @@
     <Button href={result.url} download={result.name} size="sm">
       Download {result.name}
     </Button>
-    <Badge tone="accent" class="tabular-nums">
-      sorted: {result.counts.sorted} · skipped: {result.counts.skipped} · errors: {result.counts
-        .errors}
+    <Badge tone="accent">
+      <RunCounts counts={result.counts} />
     </Badge>
   </div>
 

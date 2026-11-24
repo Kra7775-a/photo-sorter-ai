@@ -4,7 +4,7 @@ import type { LoadProgress } from "../model/protocol";
 import { createSorterController, type SorterSnapshot } from "../sorter/controller";
 import type { SyncClient } from "../sync/client";
 import type { createSyncController, RunStatus, SyncController } from "../sync/controller";
-import type { openStore } from "../sync/store";
+import type { openStore, SyncStore } from "../sync/store";
 import type { SyncRun, SyncSettings } from "../sync/types";
 
 const DEFAULT_LABELS = [
@@ -146,12 +146,13 @@ export function createAppController(deps: AppControllerDeps): AppController {
   let runStatuses: Record<string, RunStatus> = {};
   let historyBusy = false;
   let sync: SyncController | null = null;
-  const lifecycle = { destroyed: false, disposed: false };
+  let syncStore: SyncStore | null = null;
+  const lifecycle = { stopped: false, disposed: false };
 
-  // Indirect read: stop() may run while start() is awaiting, and a direct
-  // property check would be narrowed to `false` by static analysis.
-  function isDestroyed(): boolean {
-    return lifecycle.destroyed;
+  // stop() can run while start() awaits openStore(); the helper keeps the
+  // check live so late continuations are ignored.
+  function isStopped(): boolean {
+    return lifecycle.stopped;
   }
   let progressSink: ((progress: LoadProgress) => void) | null = null;
 
@@ -207,8 +208,9 @@ export function createAppController(deps: AppControllerDeps): AppController {
 
   async function start(): Promise<void> {
     const store = await deps.openStore();
+    syncStore = store;
 
-    if (isDestroyed()) {
+    if (isStopped()) {
       return;
     }
 
@@ -218,7 +220,7 @@ export function createAppController(deps: AppControllerDeps): AppController {
       // The only gate for every sync-network call: session AND explicit opt-in.
       canSync: () => account.email !== null && account.syncEnabled,
       onSnapshot: (snapshot) => {
-        if (isDestroyed()) {
+        if (isStopped()) {
           return;
         }
         runs = snapshot.runs;
@@ -227,7 +229,7 @@ export function createAppController(deps: AppControllerDeps): AppController {
         emit();
       },
       onSettings: (settings) => {
-        if (isDestroyed()) {
+        if (isStopped()) {
           return;
         }
         labelsText = settings.labels.join("\n");
@@ -247,7 +249,7 @@ export function createAppController(deps: AppControllerDeps): AppController {
     emit();
     await sync.load();
 
-    if (isDestroyed()) {
+    if (isStopped()) {
       return;
     }
 
@@ -256,7 +258,7 @@ export function createAppController(deps: AppControllerDeps): AppController {
     if (account.syncEnabled && deps.cookie().includes("better-auth.session_token=")) {
       const { data } = await deps.authClient.getSession();
 
-      if (isDestroyed()) {
+      if (isStopped()) {
         return;
       }
       account.email = data?.user?.email ?? null;
@@ -269,12 +271,13 @@ export function createAppController(deps: AppControllerDeps): AppController {
     }
   }
 
+  // Unmounting only stops callbacks from reaching the view. Sync keeps running
+  // until the user signs out or turns it off explicitly.
   function stop(): void {
-    if (isDestroyed()) {
+    if (isStopped()) {
       return;
     }
-    lifecycle.destroyed = true;
-    void sync?.stop();
+    lifecycle.stopped = true;
   }
 
   function dispose(): void {
@@ -282,20 +285,21 @@ export function createAppController(deps: AppControllerDeps): AppController {
       return;
     }
     lifecycle.disposed = true;
+    syncStore?.close();
     engine.dispose();
     sorter.dispose();
   }
 
-  async function signIn(email: string, password: string): Promise<void> {
+  async function runAuth(action: () => Promise<AuthResult>, failureMessage: string): Promise<void> {
     account.busy = true;
     account.error = null;
     emit();
 
     try {
-      const result = await deps.authClient.signIn.email({ email, password });
+      const result = await action();
 
       if (result.error) {
-        account.error = result.error.message ?? "Failed to sign in.";
+        account.error = result.error.message ?? failureMessage;
         return;
       }
       account.email = result.data?.user?.email ?? null;
@@ -308,30 +312,20 @@ export function createAppController(deps: AppControllerDeps): AppController {
     }
   }
 
-  async function signUp(email: string, password: string): Promise<void> {
-    account.busy = true;
-    account.error = null;
-    emit();
+  function signIn(email: string, password: string): Promise<void> {
+    return runAuth(() => deps.authClient.signIn.email({ email, password }), "Failed to sign in.");
+  }
 
-    try {
-      const result = await deps.authClient.signUp.email({
-        email,
-        password,
-        name: email.split("@")[0] ?? "user",
-      });
-
-      if (result.error) {
-        account.error = result.error.message ?? "Failed to create an account.";
-        return;
-      }
-      account.email = result.data?.user?.email ?? null;
-      await startSyncIfEnabled();
-    } catch (error) {
-      account.error = messageOf(error);
-    } finally {
-      account.busy = false;
-      emit();
-    }
+  function signUp(email: string, password: string): Promise<void> {
+    return runAuth(
+      () =>
+        deps.authClient.signUp.email({
+          email,
+          password,
+          name: email.split("@")[0] ?? "user",
+        }),
+      "Failed to create an account.",
+    );
   }
 
   async function signOut(): Promise<void> {

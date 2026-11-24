@@ -4,6 +4,7 @@
   import Badge from "../ui/Badge.svelte";
   import Button from "../ui/Button.svelte";
   import Card from "../ui/Card.svelte";
+  import RunCounts from "./RunCounts.svelte";
 
   type Props = {
     runs: SyncRun[];
@@ -15,18 +16,11 @@
 
   let { runs, statuses, busy, onDelete, onDetails }: Props = $props();
 
-  const STATUS_TEXT: Record<RunStatus, string> = {
-    local: "local",
-    pending: "queued",
-    synced: "synced",
-    error: "error",
-  };
-
-  const STATUS_TONE: Record<RunStatus, "neutral" | "accent" | "danger"> = {
-    local: "neutral",
-    pending: "accent",
-    synced: "accent",
-    error: "danger",
+  const STATUS: Record<RunStatus, { text: string; tone: "neutral" | "accent" | "danger" }> = {
+    local: { text: "local", tone: "neutral" },
+    pending: { text: "queued", tone: "accent" },
+    synced: { text: "synced", tone: "accent" },
+    error: { text: "error", tone: "danger" },
   };
 
   const ordered = $derived([...runs].sort((left, right) => right.createdAt - left.createdAt));
@@ -89,7 +83,7 @@
                 </button>
 
                 <div class="flex items-center gap-3">
-                  <Badge tone={STATUS_TONE[status]}>{STATUS_TEXT[status]}</Badge>
+                  <Badge tone={STATUS[status].tone}>{STATUS[status].text}</Badge>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -102,9 +96,8 @@
                 </div>
               </div>
 
-              <p class="mt-2 text-xs text-ink-muted tabular-nums">
-                sorted: {run.counts.sorted} · skipped: {run.counts.skipped} · errors: {run.counts
-                  .errors}
+              <p class="mt-2 text-xs text-ink-muted">
+                <RunCounts counts={run.counts} />
               </p>
 
               {#if expanded.has(run.clientRunId)}

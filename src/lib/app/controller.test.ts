@@ -90,6 +90,7 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     pullSettings,
   };
 
+  const closeStore = mock(() => undefined);
   const store: SyncStore = {
     getRuns: async () => [],
     putRuns: async () => undefined,
@@ -98,7 +99,7 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     putSettings: async () => undefined,
     getOutbox: async () => [],
     setOutbox: async () => undefined,
-    close: () => undefined,
+    close: closeStore,
   };
   const openStore = mock<AppControllerDeps["openStore"]>(async () => store);
 
@@ -166,6 +167,7 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     app,
     sync,
     store,
+    closeStore,
     recordRun,
     deleteRun: syncDeleteRun,
     loadDetails,
@@ -285,16 +287,24 @@ describe("createAppController", () => {
     expect(h.sync.stop).toHaveBeenCalledTimes(1);
   });
 
-  test("stop and dispose are idempotent", async () => {
+  test("stop is idempotent and does not stop sync", async () => {
     const h = harness();
 
     await h.app.start();
     h.app.stop();
     h.app.stop();
+
+    expect(h.sync.stop).not.toHaveBeenCalled();
+  });
+
+  test("dispose closes the store once and is idempotent", async () => {
+    const h = harness();
+
+    await h.app.start();
     h.app.dispose();
     h.app.dispose();
 
-    expect(h.sync.stop).toHaveBeenCalledTimes(1);
+    expect(h.closeStore).toHaveBeenCalledTimes(1);
     expect(h.engineDispose).toHaveBeenCalledTimes(1);
   });
 

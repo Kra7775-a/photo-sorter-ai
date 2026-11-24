@@ -23,6 +23,19 @@ A set of components in `src/lib/ui/` built on the headless primitives of [bits-u
 | `Card.svelte`      | container card                        | `padding`: none/sm/md                                                  |
 | `Alert.svelte`     | notification                          | `tone`: danger/accent/info; `role`: alert/status                       |
 
+### Extra props
+
+| Component   | Props beyond the variant recipes                                                          |
+| ----------- | ----------------------------------------------------------------------------------------- |
+| `Button`    | `download`, `class`; also `href`, `disabled`, `loading`, `type`, `onclick`, `children`     |
+| `Badge`     | `class`, `live` (`"polite"` / `"assertive"` for `aria-live`); also `children`             |
+| `Switch`    | `onchange(checked)`; also `checked` (bindable), `id`                                      |
+| `TextField` | `required`, `autocomplete`; also `value` (bindable), `id`                                 |
+| `Textarea`  | `class`, `oninput(value)`, `onchange(value)`; also `value` (bindable), `id`               |
+
+`download` names the saved file when a `Button` has `href`. The callbacks receive the current
+value; `class` appends to the component's Tailwind recipe.
+
 ## Examples
 
 ```svelte

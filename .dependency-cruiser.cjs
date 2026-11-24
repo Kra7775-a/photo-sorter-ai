@@ -30,6 +30,18 @@ module.exports = {
       to: { path: "^src/lib/", pathNot: "^src/lib/ui/" },
     },
     {
+      name: "ui-kit-npm-deps",
+      severity: "error",
+      comment: "UI kit components may only use svelte, bits-ui and tailwind-variants from npm.",
+      from: { path: "^src/lib/ui/" },
+      to: {
+        // Svelte's compiled imports are unresolved ('unknown'), so restrict bare
+        // specifiers here as well as resolved npm packages.
+        dependencyTypes: ["npm", "npm-dev", "npm-peer", "npm-optional", "npm-no-pkg", "unknown"],
+        pathNot: "^(node_modules/)?(svelte|bits-ui|tailwind-variants)(/|$)|^(src/|server/|\\.|/)",
+      },
+    },
+    {
       name: "domain-no-ui",
       severity: "error",
       comment: "Domain controllers must not import UI or app wiring.",
@@ -81,7 +93,8 @@ module.exports = {
       from: { path: "^src/lib/components/" },
       to: {
         path: "^src/lib/",
-        pathNot: "^src/lib/(ui|sorter/controller|sync/controller|sync/types)(/|$)",
+        pathNot:
+          "^src/lib/(ui|components/RunCounts[.]svelte|sorter/controller|sync/controller|sync/types)(/|$)",
       },
     },
     {

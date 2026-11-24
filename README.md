@@ -46,8 +46,9 @@ have tests.
 
 Component tests use Bun's `--conditions=browser`, a `.svelte` compiler preload
 (`svelte-loader.ts`) and `happy-dom`; `@testing-library/svelte` mounts components locally.
-Each component has its own `Component.svelte.test.ts` next to it, and shared DOM setup lives
-in `component-test.ts`. Tests run with `--isolate`, so per-file DOM registration cannot leak
+UI kit components have component tests next to them as `Component.svelte.test.ts`, with shared
+DOM setup in `component-test.ts`. Feature shells are verified with svelte-check and E2E and can
+get component tests later. Tests run with `--isolate`, so per-file DOM registration cannot leak
 into server or archive tests.
 
 Mutation tests are run with `bun run test:mutation`. Stryker uses the unofficial

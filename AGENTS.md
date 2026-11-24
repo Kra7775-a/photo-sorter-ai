@@ -10,7 +10,7 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 - `bun run validate` — required gate: `format:check → lint → arch:check → typecheck → check → test → build`. Run it before considering work done.
 - `bun run arch:check` — dependency-cruiser rules in `.dependency-cruiser.cjs`; `arch:graph` prints the dependency graph.
 - Single file: `bun test src/lib/archive/sort.test.ts`; single test: `bun test -t "writes the report"`. Tests use `bun:test`, live next to the code, `*.test.ts`.
-- `bun run test:coverage` — 90% lines/functions threshold. Component tests live beside components as `Component.svelte.test.ts`, use Bun's browser conditions + happy-dom via `svelte-loader.ts`, and run with `--isolate`.
+- `bun run test:coverage` — 90% lines/functions threshold. UI kit component tests live beside their components as `Component.svelte.test.ts`, use Bun's browser conditions + happy-dom via `svelte-loader.ts`, and run with `--isolate`. Feature shells are verified with svelte-check and E2E and can get component tests later.
 - `bun run test:e2e` — Playwright flows in `tests/e2e/`; install Chromium with `bun x playwright install chromium` once.
 - `bun run typecheck` — built-in `bun check --no-script -b` (project references), not `tsc`. `bun run check` — separate `svelte-check`. Both are required.
 - No CI; `bun run validate` is the only automated check.
@@ -31,6 +31,6 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 - Tailwind v4 via `@tailwindcss/vite`. Colors are semantic tokens from `src/app.css` (`text-ink`, `bg-panel`, `bg-accent`, `border-line`, …) with light/dark values already provided. Don't add raw colors or hex.
 - Formatting is oxfmt (`.oxfmtrc.json`), linting is type-aware oxlint. These are not Prettier or ESLint: don't add their configs. `bun run format` sorts imports and Tailwind classes.
 - `.agents/skills/*` are vendored skills tracked by `skills-lock.json`; don't edit them by hand. They are excluded from lint/format/Tailwind. Use these skills when working with Svelte and Transformers.js.
-- Coverage only counts modules imported by tests; `worker.ts`, `main.ts`, and `.svelte` files are excluded in `bunfig.toml`. New branches in `engine.ts`, `ranking.ts`, `archive/*` need tests; verify the worker and UI in the browser.
+- Coverage only counts modules imported by tests; `worker.ts`, `main.ts`, and config files are skipped in `bunfig.toml`, while `.svelte` components are compiled by `svelte-loader.ts` and included when their tests import them. New branches in `engine.ts`, `ranking.ts`, `archive/*` need tests; verify the worker and UI in the browser.
 - Test scripts use `--pass-with-no-tests`: a typo in the filter or file name exits 0 with no tests run.
 - Code, identifiers, and comments are English; UI strings are English.
