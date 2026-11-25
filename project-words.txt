@@ -1,6 +1,7 @@
 MobileCLIP
 ONNX
 Registrator
+Retarget
 Retriable
 Xenova
 alinaqi
@@ -10,6 +11,7 @@ bunfig
 cipheriv
 dedup
 depcruise
+developable
 dtype
 elysia
 elysiajs
@@ -21,6 +23,7 @@ jfif
 lefthook
 lombiq
 logit
+magicast
 maggy
 notnull
 oklch
@@ -29,6 +32,8 @@ opencode
 oxfmt
 oxlint
 precaches
+prerender
+prerendered
 pretrained
 registrator
 rowless
@@ -39,6 +44,7 @@ tolist
 trufflesecurity
 trufflehog
 tsgolint
+typechecks
 undeserializable
 unshifts
 uizze

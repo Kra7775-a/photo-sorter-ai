@@ -57,7 +57,6 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
     if (outbox.has(run.clientRunId)) {
       return "pending";
     }
-
     return run.serverId === undefined ? "local" : "synced";
   }
 
@@ -68,11 +67,9 @@ export function createSyncController(deps: SyncControllerDeps): SyncController {
 
   function snapshot(): void {
     const statuses: Record<string, RunStatus> = {};
-
     for (const run of runs) {
       statuses[run.clientRunId] = statusOf(run);
     }
-
     deps.onSnapshot({ runs, statuses, notice });
   }
 

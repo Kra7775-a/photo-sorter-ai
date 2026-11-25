@@ -4,13 +4,13 @@ A browser-based photo sorter that groups photos by category. The model runs loca
 
 ## Stack
 
-- Svelte 5 (runes) + TypeScript + Vite
+- SvelteKit 3 in SPA mode + Svelte 5 (runes) + TypeScript + Vite
 - Tailwind CSS v4
 - [Transformers.js](https://github.com/huggingface/transformers.js) + ONNX Runtime Web (WASM)
 - MobileCLIP-B `Xenova/mobileclip_b`, int8 (~145 MB)
 - Web Worker for inference
 - ZIP without a server: `@zip.js/zip.js` reads the archive, `client-zip` builds the new one
-- PWA (vite-plugin-pwa): offline shell, installable on a device
+- PWA (`@vite-pwa/sveltekit`): offline shell, installable on a device
 - Bun, oxlint, oxfmt, svelte-check, `bun test`
 
 ## Run
@@ -39,6 +39,32 @@ Full check before committing:
 ```bash
 bun run validate   # format:check + lint + arch:check + typecheck + check + test + build
 ```
+
+## Routes
+
+SvelteKit owns routing and layouts; the app is a client-only SPA (`ssr = false`,
+`adapter-static` with an `index.html` fallback). There is no hand-written router.
+
+| Path       | Page      | Purpose                                                        |
+| ---------- | --------- | -------------------------------------------------------------- |
+| `/`        | Landing   | Public intro; "Try without account" opens `/app`                |
+| `/sign-in` | Sign in   | Sign in / sign up, "Continue as guest" → `/app`                 |
+| `/app`     | Sorter    | Guest-first photo/ZIP sorting, history and the account chip     |
+| `/help`    | Help      | Categories, ZIP contract, first run and offline use             |
+| `/privacy` | Privacy   | The shared privacy statement                                    |
+| `/about`   | About     | Project, stack and model limitations                            |
+
+Guests can open `/app` directly and sort without an account: sync stays off and no
+`/api` request is made unless the readable `photo-sorter-session=1` hint cookie
+exists. An account exists only for opt-in metadata sync. A returning user on
+`/sign-in` redirects to `/app`. One `AppController` lives in
+`src/routes/+layout.svelte` for the whole SPA, so the loaded model and local history
+survive navigation between routes.
+
+The production output stays in `dist/`. `public/_redirects` contains
+`/* /index.html 200` for static hosts such as Cloudflare Pages, and the Bun server
+serves `dist/index.html` for non-API paths. Keep both so deep links like `/app`
+work in production.
 
 Quality and security tools (run separately, not part of `validate`):
 
@@ -79,11 +105,15 @@ full command before releases and the diff command during development.
 
 Architecture is enforced by dependency-cruiser (`arch:check`, included in `validate`). Its
 rules in `.dependency-cruiser.cjs` encode the decision in `docs/adr/0001-vertical-slices-architecture.md`:
-cycles, `src ↔ server`, domain → UI, UI leaf, feature-scope leaks, component scope, App.svelte as a composition root, no client barrel imports and server route/bootstrap separation are all forbidden. `arch:graph` prints a Mermaid graph of the current dependencies.
+cycles, `src ↔ server`, domain → UI, UI leaf, feature-scope leaks, component scope, pages outside the root layout acting as a composition root, no client barrel imports and server route/bootstrap separation are all forbidden. `arch:graph` prints a Mermaid graph of the current dependencies.
 
 Playwright lives in `tests/e2e/` with fixtures in `tests/fixtures/`; it starts `dev:all`
-itself. First run after cloning: `bun x playwright install chromium`, then
-`bun run test:e2e --update-snapshots` to create the visual baselines.
+itself. Sorter flows start at `/app`; navigation and auth flows also use `/`,
+`/sign-in`, `/help`, `/privacy` and `/about`. Visual baselines capture `main` on
+`/app` (the sorter empty state) and on `/` (the landing page) in the dark desktop,
+light desktop and dark mobile variants. First run after cloning:
+`bun x playwright install chromium`, then `bun run test:e2e --update-snapshots` to
+create the visual baselines.
 
 ## CI
 
@@ -131,16 +161,25 @@ noticeably improves short labels like `cat`.
 
 ```
 src/
-  App.svelte              thin view: state from the app controller, composition only
+  app.html                SvelteKit document shell
   app.css                 Tailwind and semantic OKLCH tokens
-  main.ts                 entry point
+  routes/
+    +layout.ts            SPA mode (ssr = false, prerender = false)
+    +layout.svelte        root layout: one AppController, context, PWA registration
+    +page.svelte          landing page wrapper
+    sign-in/, app/, help/, privacy/, about/  thin route wrappers
+    +error.svelte         not-found page
+  lib/pages/              page components rendered by the route wrappers
   lib/app/
     controller.ts         auth/sync/labels/ZIP orchestration + tests
   lib/ui/                 UI kit on bits-ui + OKLCH tokens (see docs/ui-kit.md)
   lib/sorter/
     controller.ts         photo/ZIP orchestrator with injected dependencies + tests
   lib/components/
-    AccountPanel.svelte   sign in/sign up, sync opt-in
+    SiteHeader.svelte     public top navigation
+    AppHeader.svelte      app top navigation and account chip
+    AuthForm.svelte       sign in/sign up form on /sign-in
+    AccountPanel.svelte   signed-in controls: sync opt-in, sign out, delete
     CategoriesField.svelte, SourcePicker.svelte, ProgressPanel.svelte,
     ArchiveResultCard.svelte, PhotoList.svelte, HistoryPanel.svelte
   lib/sync/
@@ -187,6 +226,14 @@ keys without data loss.
 For development there is `bun run dev:server` (watch mode). Secrets are stored only in the
 environment and are never committed; losing `SYNC_MASTER_KEY` means losing access to the
 encrypted data.
+
+On successful sign-in/sign-up the server also sets `photo-sorter-session=1`: a
+readable, non-HttpOnly hint (`Path=/`, `SameSite=Lax`, 30 days, `Secure` when
+`BETTER_AUTH_URL` is https). Sign-out and account deletion clear it. The SPA reads
+only this hint from `document.cookie` to decide whether to ask
+`/api/auth/get-session`; better-auth's HttpOnly cookie remains the actual
+credential. Guests therefore produce zero `/api` requests, while returning users
+are recognized after a reload even with sync off.
 
 Privacy: "Photos never leave your device. File names and categories are stored encrypted on the server; the server operator has access to them. Sync is off until you turn it on yourself."
 

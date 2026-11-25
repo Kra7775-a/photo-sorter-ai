@@ -1,5 +1,4 @@
 {
-  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "packageManager": "npm",
   "testRunner": "bun",
   "plugins": ["stryker-mutator-bun-runner"],

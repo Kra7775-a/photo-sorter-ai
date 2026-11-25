@@ -7,7 +7,7 @@
     "MD032": false, // plan checklists intentionally follow headings directly
     "MD038": false, // ZIP contract uses literal names with leading spaces, e.g. ` (2)`
     "MD040": false, // ASCII tree diagrams have no meaningful language
-    "MD060": false, // table alignment varies across hand-written docs
+    "MD060": false // table alignment varies across hand-written docs
   },
   "ignores": [
     "node_modules/**",
@@ -20,6 +20,6 @@
     "test-results/**",
     "playwright-report/**",
     "package-lock.json",
-    "pnpm-lock.yaml",
-  ],
+    "pnpm-lock.yaml"
+  ]
 }

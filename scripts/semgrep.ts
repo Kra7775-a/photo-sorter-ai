@@ -1,3 +1,5 @@
+export {};
+
 const semgrep = Bun.which("semgrep");
 
 if (!semgrep) {

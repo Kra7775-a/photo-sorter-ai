@@ -26,6 +26,11 @@ function cookieFrom(res: Response): string {
     .join("; ");
 }
 
+/** Finds one raw Set-Cookie header by name. */
+function setCookie(res: Response, name: string): string | null {
+  return res.headers.getSetCookie().find((cookie) => cookie.startsWith(`${name}=`)) ?? null;
+}
+
 function url(path: string): string {
   return `http://localhost:${server.port}${path}`;
 }
@@ -64,18 +69,27 @@ afterAll(async () => {
 });
 
 describe("email+password accounts", () => {
-  test("sign-up returns 200 with the new user", async () => {
+  test("sign-up returns 200 with the new user and sets the readable hint", async () => {
     const res = await post("/api/auth/sign-up/email", { email, password, name: "Alice" });
     expect(res.status).toBe(200);
     const body = (await res.json()) as AuthBody;
     expect(body.user.email).toBe(email);
+
+    const hint = setCookie(res, "photo-sorter-session");
+    expect(hint).toContain("photo-sorter-session=1");
+    expect(hint).toContain("Max-Age=2592000");
+    expect(hint).toContain("Path=/");
+    expect(hint).toContain("SameSite=Lax");
+    expect(hint).not.toContain("HttpOnly");
+    expect(hint).not.toContain("Secure");
   });
 
-  test("sign-in sets a session cookie", async () => {
+  test("sign-in sets a session cookie and the readable hint", async () => {
     const res = await post("/api/auth/sign-in/email", { email, password });
     expect(res.status).toBe(200);
     sessionCookie = cookieFrom(res);
     expect(sessionCookie).toContain("better-auth.session_token=");
+    expect(setCookie(res, "photo-sorter-session")).toContain("photo-sorter-session=1");
   });
 
   test("get-session with the cookie returns the user email", async () => {
@@ -88,9 +102,10 @@ describe("email+password accounts", () => {
     userId = body.user.id;
   });
 
-  test("sign-in with a wrong password returns 401", async () => {
+  test("sign-in with a wrong password returns 401 and no hint", async () => {
     const res = await post("/api/auth/sign-in/email", { email, password: "wrong-password" });
     expect(res.status).toBe(401);
+    expect(setCookie(res, "photo-sorter-session")).toBeNull();
   });
 
   test("get-session without a cookie returns a null session", async () => {
@@ -109,6 +124,25 @@ describe("email+password accounts", () => {
     expect(anonymous).toBeNull();
   });
 
+  test("sign-out clears the readable hint", async () => {
+    const res = await fetch(url("/api/auth/sign-out"), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: sessionCookie,
+        origin: `http://localhost:${server.port}`,
+      },
+      body: "{}",
+    });
+    expect(res.status).toBe(200);
+    const hint = setCookie(res, "photo-sorter-session");
+    expect(hint).toContain("photo-sorter-session=;");
+    expect(hint).toContain("Max-Age=0");
+    expect(hint).toContain("Path=/");
+    expect(hint).toContain("SameSite=Lax");
+    expect(hint).not.toContain("HttpOnly");
+  });
+
   test("deleting an account cascades to app metadata", async () => {
     const signup = await post("/api/auth/sign-up/email", {
       email: "delete-me@example.com",
@@ -119,6 +153,18 @@ describe("email+password accounts", () => {
     const body = (await signup.json()) as AuthBody;
     const cookie = cookieFrom(signup);
     const id = body.user.id;
+
+    const wrongPassword = await fetch(url("/api/auth/delete-user"), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie,
+        origin: `http://localhost:${server.port}`,
+      },
+      body: JSON.stringify({ password: "wrong-password" }),
+    });
+    expect(wrongPassword.status).toBe(400);
+    expect(setCookie(wrongPassword, "photo-sorter-session")).toBeNull();
 
     db.query("INSERT INTO user_keys (user_id, wrapped_key, key_version) VALUES (?, ?, 1)").run(
       id,
@@ -138,6 +184,9 @@ describe("email+password accounts", () => {
       body: JSON.stringify({ password }),
     });
     expect(res.status).toBe(200);
+    const hint = setCookie(res, "photo-sorter-session");
+    expect(hint).toContain("photo-sorter-session=;");
+    expect(hint).toContain("Max-Age=0");
 
     for (const table of ["user", "user_keys", "settings", "sort_runs"]) {
       const where = table === "user" ? "id = ?" : "user_id = ?";

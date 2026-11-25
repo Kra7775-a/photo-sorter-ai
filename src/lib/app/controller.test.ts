@@ -34,19 +34,16 @@ function deferred<T>() {
 
 function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
   const values = new Map<string, string>();
-
   if (initial.storedPref === true) {
     values.set("photo-sorter-sync-enabled", "true");
   }
-  const cookie = initial.cookie ?? "";
-
+  let cookie = initial.cookie ?? "";
   const storage = {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => {
       values.set(key, value);
     },
   } satisfies Pick<Storage, "getItem" | "setItem">;
-
   const getSession = mock<AuthClientLike["getSession"]>(async () => ({
     data: { user: { email: EMAIL } },
   }));
@@ -65,7 +62,6 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     signOut,
     deleteUser,
   };
-
   const pushRun = mock<SyncClient["pushRun"]>(async () => "srv-1");
   const pullRuns = mock<SyncClient["pullRuns"]>(async () => []);
   const getRun = mock<SyncClient["getRun"]>(async (id) => ({
@@ -89,7 +85,6 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     pushSettings,
     pullSettings,
   };
-
   const closeStore = mock(() => undefined);
   const store: SyncStore = {
     getRuns: async () => [],
@@ -102,7 +97,6 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     close: closeStore,
   };
   const openStore = mock<AppControllerDeps["openStore"]>(async () => store);
-
   const recordRun = mock<SyncController["recordRun"]>(async () => undefined);
   const syncDeleteRun = mock<SyncController["deleteRun"]>(async () => undefined);
   const loadDetails = mock<SyncController["loadDetails"]>(async () => undefined);
@@ -184,6 +178,9 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     getSession,
     apiCalls,
     values,
+    setCookie: (next: string) => {
+      cookie = next;
+    },
     last(): AppSnapshot {
       const last = snapshots.at(-1);
 
@@ -217,6 +214,53 @@ describe("createAppController", () => {
     expect(h.apiCalls()).toBe(0);
     expect(h.sync.queueAll).not.toHaveBeenCalled();
     expect(h.sync.sync).not.toHaveBeenCalled();
+  });
+
+  test("checkSession with a session cookie loads the email", async () => {
+    const h = harness({ cookie: "photo-sorter-session=1" });
+
+    await h.app.checkSession();
+
+    expect(h.getSession).toHaveBeenCalledTimes(1);
+    expect(h.last().account.email).toBe(EMAIL);
+  });
+
+  test("checkSession without a cookie makes no auth call", async () => {
+    const h = harness();
+
+    await h.app.start();
+    await h.app.checkSession();
+
+    expect(h.getSession).not.toHaveBeenCalled();
+    expect(h.last().account.email).toBeNull();
+  });
+
+  test("successful signIn replaces a stale guest session lookup", async () => {
+    const h = harness();
+    await h.app.checkSession();
+    h.setCookie("photo-sorter-session=1");
+    await h.app.signIn(EMAIL, "secret");
+    await h.app.checkSession();
+    expect(h.getSession).toHaveBeenCalledTimes(1);
+    expect(h.last().account.email).toBe(EMAIL);
+  });
+
+  test("an HttpOnly session token without the hint makes no auth call", async () => {
+    const h = harness({ cookie: "better-auth.session_token=abc" });
+
+    await h.app.checkSession();
+
+    expect(h.getSession).not.toHaveBeenCalled();
+  });
+
+  test("checkSession reuses the session read already done by start", async () => {
+    const h = harness({ storedPref: true, cookie: "photo-sorter-session=1" });
+
+    await h.app.start();
+    await h.app.checkSession();
+
+    expect(h.getSession).toHaveBeenCalledTimes(1);
+    expect(h.last().account.email).toBe(EMAIL);
   });
 
   test("signIn with the preference already on queues and syncs", async () => {
@@ -348,7 +392,7 @@ describe("createAppController", () => {
   });
 
   test("a session cookie restores the email and queues local runs", async () => {
-    const h = harness({ storedPref: true, cookie: "other=1; better-auth.session_token=abc" });
+    const h = harness({ storedPref: true, cookie: "other=1; photo-sorter-session=1" });
 
     await h.app.start();
 

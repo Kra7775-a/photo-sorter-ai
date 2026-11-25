@@ -96,18 +96,29 @@ module.exports = {
       to: {
         path: "^src/lib/",
         pathNot:
-          "^src/lib/(ui|components/RunCounts[.]svelte|sorter/controller|sync/controller|sync/types)(/|$)",
+          "^src/lib/(ui|components/(RunCounts|AuthForm|AccountPanel)[.]svelte|sorter/controller|sync/controller|sync/types)(/|$)|^src/lib/app/(context|copy)[.]ts$",
       },
     },
     {
-      name: "app-view-scope",
+      name: "pages-scope",
       severity: "error",
-      comment: "App.svelte is a composition root: entry points only, no internals.",
-      from: { path: "^src/App[.]svelte$" },
+      comment: "Pages may use app APIs, components and the UI kit only.",
+      from: { path: "^src/lib/pages/" },
       to: {
         path: "^src/lib/",
+        pathNot: "^src/lib/(pages/|app/(context|copy|controller)[.]ts$|components/|ui/)",
+      },
+    },
+    {
+      name: "routes-scope",
+      severity: "error",
+      comment: "SvelteKit routes are composition roots: entry points, pages and $app APIs only.",
+      from: { path: "^src/routes/" },
+      to: {
+        path: "^src/lib/",
+        // $app/* imports are virtual modules, so they never match ^src/lib/.
         pathNot:
-          "^src/lib/(app|components|ui|archive/sort|model/engine|sync/client|sync/controller|sync/store)[.]ts$|^src/lib/(app|components|ui)/",
+          "^src/lib/(pages|components|ui|app/(context|controller|copy)|archive/sort|model/engine|sync/(client|controller|store))[.]ts$|^src/lib/(pages|components|ui)/",
       },
     },
     {

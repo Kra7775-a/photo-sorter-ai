@@ -27,8 +27,14 @@ dist-ssr
 # PWA dev build
 dev-dist
 
+# SvelteKit generated files
+.svelte-kit
+
 # Test coverage
 coverage
+
+# Visual brainstorming artifacts
+.superpowers/
 
 # Mutation testing artifacts
 .stryker-tmp

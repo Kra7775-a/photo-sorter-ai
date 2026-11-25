@@ -6,7 +6,7 @@ rules:
       - typescript
     paths:
       include:
-        - src/**/*.ts
+        - "**/src/**/*.ts"
     pattern-either:
       - pattern: eval(...)
       - pattern: Function(...)
@@ -19,6 +19,6 @@ rules:
       - generic
     paths:
       include:
-        - src/**/*.ts
-        - src/**/*.svelte
+        - "**/src/**/*.ts"
+        - "**/src/**/*.svelte"
     pattern-regex: '\binnerHTML\s*=(?!=)'

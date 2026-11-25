@@ -1,7 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "src/main.ts",
+    "src/routes/**/*.svelte",
+    "src/routes/**/*.ts",
     "src/**/*.svelte",
     "src/**/*.test.ts",
     "server/main.ts",
@@ -12,6 +13,8 @@
     "tests/e2e/**/*.ts",
     "playwright.config.ts",
     "svelte-loader.ts",
+    "src/app.d.ts",
+    "vite.config.ts",
     ".dependency-cruiser.cjs"
   ],
   "project": [

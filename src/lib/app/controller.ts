@@ -1,130 +1,20 @@
-import type { sortArchive } from "../archive/sort";
-import type { createEngine } from "../model/engine";
 import type { LoadProgress } from "../model/protocol";
-import { createSorterController, type SorterSnapshot } from "../sorter/controller";
-import type { SyncClient } from "../sync/client";
-import type { createSyncController, RunStatus, SyncController } from "../sync/controller";
-import type { openStore, SyncStore } from "../sync/store";
+import { createSorterController } from "../sorter/controller";
+import type { RunStatus, SyncController } from "../sync/controller";
+import type { SyncStore } from "../sync/store";
 import type { SyncRun, SyncSettings } from "../sync/types";
+import { createAuthFlow } from "./auth";
+import {
+  DEFAULT_LABELS,
+  SYNC_PREF_KEY,
+  emptySorterSnapshot,
+  messageOf,
+  type AppAccountSnapshot,
+  type AppController,
+  type AppControllerDeps,
+} from "./types";
 
-const DEFAULT_LABELS = [
-  "people",
-  "food",
-  "animals",
-  "nature",
-  "documents",
-  "screenshots",
-  "transport",
-];
-
-const SYNC_PREF_KEY = "photo-sorter-sync-enabled";
-
-export type AppAccountSnapshot = {
-  email: string | null;
-  syncEnabled: boolean;
-  busy: boolean;
-  error: string | null;
-};
-
-export type AppSnapshot = {
-  labelsText: string;
-  sorter: SorterSnapshot;
-  account: AppAccountSnapshot;
-  syncNotice: string | null;
-  recordError: string | null;
-  runs: SyncRun[];
-  runStatuses: Record<string, RunStatus>;
-  historyBusy: boolean;
-};
-
-type AuthResult = {
-  data?: { user?: { email?: string | null } } | null;
-  error?: { message?: string } | null;
-};
-
-type AuthDeletionResult = {
-  data?: unknown;
-  error?: { message?: string } | null;
-};
-
-/** The subset of better-auth's client that App actually calls. */
-export type AuthClientLike = {
-  getSession(): Promise<AuthResult>;
-  signIn: {
-    email(input: { email: string; password: string }): Promise<AuthResult>;
-  };
-  signUp: {
-    email(input: { email: string; password: string; name: string }): Promise<AuthResult>;
-  };
-  signOut(): Promise<unknown>;
-  deleteUser(input: { password: string }): Promise<AuthDeletionResult>;
-};
-
-export type AppControllerDeps = {
-  authClient: AuthClientLike;
-  syncClient: SyncClient;
-  createEngine: typeof createEngine;
-  sortArchive: typeof sortArchive;
-  createUrl: (blob: Blob) => string;
-  revokeUrl: (url: string) => void;
-  now: () => number;
-  uuid: () => string;
-  storage: Pick<Storage, "getItem" | "setItem">;
-  cookie: () => string;
-  openStore: typeof openStore;
-  createSyncController: typeof createSyncController;
-  onSnapshot: (snapshot: AppSnapshot) => void;
-};
-
-export type AppController = {
-  start(): Promise<void>;
-  stop(): void;
-  dispose(): void;
-  signIn(email: string, password: string): Promise<void>;
-  signUp(email: string, password: string): Promise<void>;
-  signOut(): Promise<void>;
-  deleteAccount(password: string): Promise<void>;
-  setSync(next: boolean): Promise<void>;
-  updateLabels(next: string): void;
-  handleFiles(files: readonly File[]): Promise<void>;
-  handleArchive(file: File): Promise<void>;
-  deleteRun(run: SyncRun): Promise<void>;
-  loadDetails(run: SyncRun): Promise<void>;
-};
-
-function emptySorterSnapshot(): SorterSnapshot {
-  return {
-    items: [],
-    pending: 0,
-    failure: null,
-    progress: null,
-    percent: 0,
-    loadingModel: false,
-    archiveProgress: null,
-    archivePercent: 0,
-    archiveResult: null,
-    archiveBusy: false,
-    busy: false,
-  };
-}
-
-/** Initial view state, shared by the component and the controller. */
-export function emptyAppSnapshot(): AppSnapshot {
-  return {
-    labelsText: DEFAULT_LABELS.join("\n"),
-    sorter: emptySorterSnapshot(),
-    account: { email: null, syncEnabled: false, busy: false, error: null },
-    syncNotice: null,
-    recordError: null,
-    runs: [],
-    runStatuses: {},
-    historyBusy: false,
-  };
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+export * from "./types";
 
 /**
  * Owns every piece of app state and every side effect. The component only
@@ -206,6 +96,26 @@ export function createAppController(deps: AppControllerDeps): AppController {
     }
   }
 
+  const {
+    readSessionOnce,
+    resetSessionLookup,
+    checkSession,
+    signIn,
+    signUp,
+    signOut,
+    deleteAccount,
+  } = createAuthFlow({
+    authClient: deps.authClient,
+    cookie: deps.cookie,
+    storage: deps.storage,
+    account,
+    emit,
+    isStopped,
+    startSyncIfEnabled,
+    getSync: () => sync,
+    syncPrefKey: SYNC_PREF_KEY,
+  });
+
   async function start(): Promise<void> {
     const store = await deps.openStore();
     syncStore = store;
@@ -238,6 +148,7 @@ export function createAppController(deps: AppControllerDeps): AppController {
       onUnauthorized: () => {
         account.email = null;
         account.syncEnabled = false;
+        resetSessionLookup();
         deps.storage.setItem(SYNC_PREF_KEY, "false");
         account.error = "Session expired. Please sign in again.";
         emit();
@@ -255,18 +166,20 @@ export function createAppController(deps: AppControllerDeps): AppController {
 
     // With sync off there is not even an auth request: zero /api traffic.
     // With a stale "on" flag but no session cookie, still make no request.
-    if (account.syncEnabled && deps.cookie().includes("better-auth.session_token=")) {
-      const { data } = await deps.authClient.getSession();
+    if (account.syncEnabled) {
+      const session = await readSessionOnce();
 
-      if (isStopped()) {
-        return;
-      }
-      account.email = data?.user?.email ?? null;
-      emit();
+      if (session.checked) {
+        if (isStopped()) {
+          return;
+        }
+        account.email = session.email;
+        emit();
 
-      if (account.email !== null) {
-        await sync.queueAll();
-        await sync.sync();
+        if (account.email !== null) {
+          await sync.queueAll();
+          await sync.sync();
+        }
       }
     }
   }
@@ -288,90 +201,6 @@ export function createAppController(deps: AppControllerDeps): AppController {
     syncStore?.close();
     engine.dispose();
     sorter.dispose();
-  }
-
-  async function runAuth(action: () => Promise<AuthResult>, failureMessage: string): Promise<void> {
-    account.busy = true;
-    account.error = null;
-    emit();
-
-    try {
-      const result = await action();
-
-      if (result.error) {
-        account.error = result.error.message ?? failureMessage;
-        return;
-      }
-      account.email = result.data?.user?.email ?? null;
-      await startSyncIfEnabled();
-    } catch (error) {
-      account.error = messageOf(error);
-    } finally {
-      account.busy = false;
-      emit();
-    }
-  }
-
-  function signIn(email: string, password: string): Promise<void> {
-    return runAuth(() => deps.authClient.signIn.email({ email, password }), "Failed to sign in.");
-  }
-
-  function signUp(email: string, password: string): Promise<void> {
-    return runAuth(
-      () =>
-        deps.authClient.signUp.email({
-          email,
-          password,
-          name: email.split("@")[0] ?? "user",
-        }),
-      "Failed to create an account.",
-    );
-  }
-
-  async function signOut(): Promise<void> {
-    account.busy = true;
-    account.error = null;
-    emit();
-
-    try {
-      await deps.authClient.signOut();
-    } catch (error) {
-      account.error = messageOf(error);
-    } finally {
-      account.busy = false;
-      emit();
-    }
-
-    account.email = null;
-    account.syncEnabled = false;
-    deps.storage.setItem(SYNC_PREF_KEY, "false");
-    await sync?.stop();
-    emit();
-  }
-
-  async function deleteAccount(password: string): Promise<void> {
-    account.busy = true;
-    account.error = null;
-    emit();
-
-    try {
-      const result = await deps.authClient.deleteUser({ password });
-
-      if (result.error) {
-        account.error = result.error.message ?? "Failed to delete account.";
-        return;
-      }
-
-      account.email = null;
-      account.syncEnabled = false;
-      deps.storage.setItem(SYNC_PREF_KEY, "false");
-      await sync?.stop();
-    } catch (error) {
-      account.error = messageOf(error);
-    } finally {
-      account.busy = false;
-      emit();
-    }
   }
 
   async function setSync(next: boolean): Promise<void> {
@@ -443,6 +272,7 @@ export function createAppController(deps: AppControllerDeps): AppController {
 
   return {
     start,
+    checkSession,
     stop,
     dispose,
     signIn,

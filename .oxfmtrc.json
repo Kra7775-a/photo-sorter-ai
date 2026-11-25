@@ -44,6 +44,12 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": ["**/*.jsonc"],
+      "options": { "trailingComma": "none" }
+    }
+  ],
   "ignorePatterns": [
     "**/*.md",
     "**/*.mdx",

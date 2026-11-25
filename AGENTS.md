@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Optional Bun server for opt-in metadata sync (no photos are uploaded, no env files are committed). Product details and the ZIP contract are in `README.md`.
+Browser-based photo sorter: SvelteKit 3 SPA (Svelte 5 + Vite), MobileCLIP runs in a Web Worker. Optional Bun server for opt-in metadata sync (no photos are uploaded, no env files are committed). Product details, the route map and the ZIP contract are in `README.md`.
 
 ## Commands
 
@@ -11,7 +11,7 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 - `bun run arch:check` — dependency-cruiser rules in `.dependency-cruiser.cjs`; `arch:graph` prints the dependency graph.
 - Single file: `bun test src/lib/archive/sort.test.ts`; single test: `bun test -t "writes the report"`. Tests use `bun:test`, live next to the code, `*.test.ts`.
 - `bun run test:coverage` — 90% lines/functions threshold. UI kit component tests live beside their components as `Component.svelte.test.ts`, use Bun's browser conditions + happy-dom via `svelte-loader.ts`, and run with `--isolate`. Feature shells are verified with svelte-check and E2E and can get component tests later.
-- `bun run test:e2e` — Playwright flows in `tests/e2e/`; install Chromium with `bun x playwright install chromium` once.
+- `bun run test:e2e` — Playwright flows in `tests/e2e/`; install Chromium with `bun x playwright install chromium` once. Sorter flows start on `/app`; navigation/auth flows also use `/`, `/sign-in`, `/help`, `/privacy` and `/about`. Update baselines with `bun run test:e2e --update-snapshots`.
 - `bun run test:mutation` — full Stryker run (`--force`); `bun run test:mutation:diff` — incremental run with JSON reports in `reports/mutation/`.
 - `bun run typecheck` — built-in `bun check --no-script -b` (project references), not `tsc`. `bun run check` — separate `svelte-check`. Both are required.
 - `bun run quality` — local duplication/unused/spelling/secrets/docs checks. `bun run sast` — Semgrep if installed locally (CI always runs it). `bun run hooks:install` — install Lefthook pre-commit hooks (fast checks only).
@@ -19,20 +19,20 @@ Browser-based photo sorter: Svelte 5 + Vite, MobileCLIP runs in a Web Worker. Op
 
 ## Architecture
 
-- `src/main.ts` mounts `src/App.svelte` — a thin wiring layer: auth/sync + composition of components. UI logic lives in `src/lib/components/*`; file/ZIP orchestration lives in the tested `src/lib/sorter/controller.ts`.
+- `src/routes/+layout.svelte` is the composition root: one `AppController` for the whole SPA, `view` in `$state.raw` provided via `src/lib/app/context.ts`, `start()`/`stop()` once, PWA registration. Thin route wrappers in `src/routes/` render page components from `src/lib/pages/`; UI logic lives in `src/lib/components/*`, file/ZIP orchestration in the tested `src/lib/sorter/controller.ts`. `/` is the landing page, `/sign-in` the auth page, `/app` the sorter; `/help`, `/privacy`, `/about` are content pages. Guests can deep-link `/app` with no auth redirect and zero `/api` requests; a returning user is detected by the server-set readable `photo-sorter-session=1` hint cookie (better-auth's own session cookie is HttpOnly) and redirects from `/sign-in` to `/app`.
 - The main thread talks to the model only through `src/lib/model/engine.ts`; `worker.ts` is the only place that actually imports `@huggingface/transformers`. Don't pull the library into the main thread.
 - The worker processes requests sequentially (`queue`): ONNX sessions are not reentrant. `progress` messages are global, without `id`; `result`/`error` are matched by `id`. Message shapes are in `protocol.ts` — change them consistently.
 - `sortArchive` reads the ZIP one file at a time and streams the result via `client-zip`. `@zip.js/zip.js` is lazy-loaded from `zip-core-native`; `zip-core.d.ts` is a local type shim for that subpath. Don't replace streaming with in-memory extraction.
 - ZIP contract: category folders, name deduplication with ` (2)`, `report.csv` with BOM and CRLF; HEIC/TIFF and non-images are skipped, errors go into the report. If you change behavior, update tests and README.
 - The `Xenova/mobileclip_b` model (q8, ~145 MB) is downloaded from Hugging Face on first run and cached by the browser. The text encoder is English-only: categories must be English, prompt `a photo of <label>`. The UI is English, but categories must not be translated.
-- The PWA precaches the shell; the ORT `.wasm` (26.9 MB) is cached at runtime because it exceeds Cloudflare's 25 MB limit. `dist/` is a static deploy.
+- The PWA precaches the shell; the ORT `.wasm` (26.9 MB) is cached at runtime because it exceeds Cloudflare's 25 MB limit. `dist/` is a static deploy; keep `public/_redirects` (`/* /index.html 200`) and the Bun server's HTML fallback so `/app` and other deep links work.
 
 ## Conventions
 
-- Svelte 5 runes only (`$state`, `$derived`): `runes: true` is set in `svelte.config.js`. Don't write new code in legacy syntax (`export let`, `$:`).
+- Svelte 5 runes only (`$state`, `$derived`): `runes: true` is set in `vite.config.ts` inside `withPwa()`. Don't write new code in legacy syntax (`export let`, `$:`).
 - Tailwind v4 via `@tailwindcss/vite`. Colors are semantic tokens from `src/app.css` (`text-ink`, `bg-panel`, `bg-accent`, `border-line`, …) with light/dark values already provided. Don't add raw colors or hex.
 - Formatting is oxfmt (`.oxfmtrc.json`), linting is type-aware oxlint. These are not Prettier or ESLint: don't add their configs. `bun run format` sorts imports and Tailwind classes.
 - `.agents/skills/*` are vendored skills tracked by `skills-lock.json`; don't edit them by hand. They are excluded from lint/format/Tailwind. Use these skills when working with Svelte and Transformers.js.
-- Coverage only counts modules imported by tests; `worker.ts`, `main.ts`, and config files are skipped in `bunfig.toml`, while `.svelte` components are compiled by `svelte-loader.ts` and included when their tests import them. New branches in `engine.ts`, `ranking.ts`, `archive/*` need tests; verify the worker and UI in the browser.
+- Coverage only counts modules imported by tests; `worker.ts` and config files are skipped in `bunfig.toml`, while `.svelte` components are compiled by `svelte-loader.ts` and included when their tests import them. New branches in `engine.ts`, `ranking.ts`, `archive/*` need tests; verify the worker and UI in the browser.
 - Test scripts use `--pass-with-no-tests`: a typo in the filter or file name exits 0 with no tests run.
 - Code, identifiers, and comments are English; UI strings are English.

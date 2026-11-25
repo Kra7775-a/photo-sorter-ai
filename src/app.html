@@ -12,9 +12,9 @@
     <meta name="theme-color" content="#fafafd" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f0f13" media="(prefers-color-scheme: dark)" />
     <title>AI Photo Sorter</title>
+    %sveltekit.head%
   </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

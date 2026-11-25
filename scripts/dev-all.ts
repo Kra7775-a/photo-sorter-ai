@@ -2,6 +2,8 @@
  * Starts the Vite dev server and the Bun API together with one command.
  * The client keeps its own port (3000) and proxies `/api` to the server (3001).
  */
+export {};
+
 const children: ReturnType<typeof Bun.spawn>[] = [];
 let stopping = false;
 
@@ -28,7 +30,7 @@ const apiEnv = {
 };
 
 children.push(
-  Bun.spawn(["bun", "--bun", "vite"], {
+  Bun.spawn(["bun", "vite"], {
     stdout: "inherit",
     stderr: "inherit",
     stdin: "inherit",
