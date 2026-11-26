@@ -95,6 +95,67 @@ describe("createEngine", () => {
     expect(await result).toEqual({ scores, ms: 42 });
   });
 
+  test("classifyBatch posts one batch request and resolves its results", async () => {
+    const engine = createEngine();
+    const worker = latestWorker();
+    const second = new Blob(["second image"], { type: "image/jpeg" });
+    const results = [
+      { ms: 11, scores: [{ label: "cat", score: 0.9 }] },
+      { ms: 12, scores: [{ label: "dog", score: 0.8 }] },
+    ];
+    const pending = engine.classifyBatch([IMAGE, second], LABELS);
+
+    expect(worker.posted).toHaveLength(1);
+    expect(worker.posted[0]).toMatchObject({
+      type: "classify-batch",
+      images: [IMAGE, second],
+      labels: LABELS,
+    });
+    expect(typeof worker.posted[0].id).toBe("string");
+
+    worker.emit({ type: "batch-result", id: worker.posted[0].id, results });
+
+    expect(await pending).toEqual(results);
+  });
+
+  test("classifyBatch with no images resolves without posting", async () => {
+    const engine = createEngine();
+    const worker = latestWorker();
+
+    expect(await engine.classifyBatch([], LABELS)).toEqual([]);
+    expect(worker.posted).toEqual([]);
+  });
+
+  test("classifyBatch ignores stray ids until its batch-result arrives", async () => {
+    const engine = createEngine();
+    const worker = latestWorker();
+    const first = engine.classifyBatch([IMAGE], LABELS);
+    const firstId = worker.posted[0].id;
+    const second = engine.classifyBatch([IMAGE], LABELS);
+    const secondId = worker.posted[1].id;
+    const firstResults = [{ ms: 1, scores: [{ label: "cat", score: 0.7 }] }];
+    const secondResults = [{ ms: 2, scores: [{ label: "dog", score: 0.8 }] }];
+
+    worker.emit({ type: "batch-result", id: "stray", results: firstResults });
+    worker.emit({ type: "batch-result", id: secondId, results: secondResults });
+    worker.emit({ type: "batch-result", id: firstId, results: firstResults });
+
+    expect(await second).toEqual(secondResults);
+    expect(await first).toEqual(firstResults);
+  });
+
+  test("classifyBatch rejects after dispose without posting", async () => {
+    const engine = createEngine();
+    const worker = latestWorker();
+
+    engine.dispose();
+
+    expect(await rejectionMessage(engine.classifyBatch([IMAGE], LABELS))).toBe(
+      "AI engine is disposed",
+    );
+    expect(worker.posted).toEqual([]);
+  });
+
   test("forwards download progress to the caller", () => {
     const progress: LoadProgress[] = [];
     createEngine({ onProgress: (next) => progress.push(next) });

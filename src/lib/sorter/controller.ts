@@ -1,5 +1,5 @@
 import type { ArchiveProgress, ClassifyImage, SortArchiveResult } from "../archive/sort";
-import type { Score } from "../model/protocol";
+import type { ClassifyResult, Score } from "../model/protocol";
 import type { SyncRun } from "../sync/types";
 
 export type SorterItem = { id: number; ms: number; name: string; scores: Score[]; url: string };
@@ -27,11 +27,13 @@ export type SorterSnapshot = {
 
 export type SorterDeps = {
   classify(file: Blob, labels: string[]): Promise<{ scores: Score[]; ms: number }>;
+  classifyBatch(images: Blob[], labels: string[]): Promise<ClassifyResult[]>;
   sortArchive(
     file: File,
     labels: string[],
     classify: ClassifyImage,
     onProgress: (p: ArchiveProgress) => void,
+    classifyBatch?: (images: Blob[], labels: string[]) => Promise<ClassifyResult[]>,
   ): Promise<SortArchiveResult>;
   createUrl(blob: Blob): string;
   revokeUrl(url: string): void;
@@ -184,6 +186,7 @@ export function createSorterController(deps: SorterDeps): SorterController {
           archiveProgress = next;
           emit();
         },
+        (images, labels) => deps.classifyBatch(images, labels),
       );
 
       if (disposed) {

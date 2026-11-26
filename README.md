@@ -162,6 +162,10 @@ You can select a `.zip` instead of individual photos. The archive is read one fi
 - non-images and files that fail to decode are not copied, but are listed in the report;
 - HEIC/TIFF are skipped: the browser cannot decode them.
 
+Images are classified in batches of 8: the worker handles one batch per message with a
+single vision forward and stays sequential (ONNX sessions are not reentrant). Callers
+that don't provide a batch callback keep the per-image classification path.
+
 The sorted/review/skipped/error counts appear above the download link. Synced run metadata
 carries an optional `review` count, so runs recorded before the review bucket existed stay valid.
 

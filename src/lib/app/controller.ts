@@ -73,9 +73,10 @@ export function createAppController(deps: AppControllerDeps): AppController {
   const engine = deps.createEngine({ onProgress: (next) => progressSink?.(next) });
   const sorter = createSorterController({
     classify: (file, nextLabels) => engine.classify(file, nextLabels),
+    classifyBatch: (images, labels) => engine.classifyBatch(images, labels),
     // The real sortArchive takes a 4th options object, not a bare callback.
-    sortArchive: (file, nextLabels, classify, onProgress) =>
-      deps.sortArchive(file, nextLabels, classify, { onProgress }),
+    sortArchive: (file, nextLabels, classify, onProgress, classifyBatch) =>
+      deps.sortArchive(file, nextLabels, classify, { onProgress }, classifyBatch),
     createUrl: deps.createUrl,
     revokeUrl: deps.revokeUrl,
     now: deps.now,

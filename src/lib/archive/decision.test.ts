@@ -77,6 +77,26 @@ describe("decideCategory", () => {
     expect(decision?.category).toBe("review");
   });
 
+  test("accepts a score exactly at the confidence threshold", () => {
+    const decision = decideCategory([
+      { label: "people", score: MIN_CONFIDENCE },
+      { label: "nature", score: 0.25 },
+    ]);
+
+    expect(decision?.review).toBe(false);
+    expect(decision?.category).toBe("people");
+  });
+
+  test("accepts a margin exactly at the margin threshold", () => {
+    const decision = decideCategory([
+      { label: "people", score: 0.9 },
+      { label: "nature", score: 0.9 - MIN_MARGIN },
+    ]);
+
+    expect(decision?.review).toBe(false);
+    expect(decision?.margin).toBeCloseTo(MIN_MARGIN);
+  });
+
   test("pins the decision thresholds", () => {
     expect(MIN_CONFIDENCE).toBe(0.65);
     expect(MIN_MARGIN).toBe(0.15);

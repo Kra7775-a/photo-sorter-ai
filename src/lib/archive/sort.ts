@@ -1,6 +1,6 @@
 import { downloadZip } from "client-zip";
 
-import type { Score } from "../model/protocol";
+import type { ClassifyResult, Score } from "../model/protocol";
 import { decideCategory } from "./decision";
 import {
   archiveOutputName,
@@ -14,6 +14,10 @@ import {
 } from "./naming";
 
 export type ClassifyImage = (image: Blob, labels: string[]) => Promise<{ scores: Score[] }>;
+
+export type ClassifyBatch = (images: Blob[], labels: string[]) => Promise<ClassifyResult[]>;
+
+export const BATCH_SIZE = 8;
 
 export type ArchiveProgress = {
   done: number;
@@ -74,15 +78,16 @@ export function createZipLoader(load: () => Promise<ZipApi> = importZip): () => 
 const loadZip = createZipLoader();
 
 /**
- * Reads the input archive one entry at a time, classifies images sequentially
- * and streams the result into a new archive. Only the entry being processed is
- * decompressed at any moment; the output is buffered once by `downloadZip`.
+ * Reads the input archive one entry at a time, classifies images in batches
+ * and streams the result into a new archive. Only the current batch is kept
+ * in memory; the output is buffered once by `downloadZip`.
  */
 export async function sortArchive(
   file: File,
   labels: readonly string[],
   classify: ClassifyImage,
   options: SortArchiveOptions = {},
+  classifyBatch?: ClassifyBatch,
 ): Promise<SortArchiveResult> {
   if (labels.length === 0) {
     throw new Error("At least one category is required");
@@ -101,25 +106,110 @@ export async function sortArchive(
 
     options.onProgress?.({ done: 0, total, current: "" });
 
-    async function* outputEntries(): AsyncGenerator<OutputEntry> {
-      let done = 0;
+    type Pending = { source: string; image: Blob; lastModified?: Date };
+    let done = 0;
+    let pending: Pending[] = [];
 
+    function recordError(
+      source: string,
+      error: string,
+      status: "error" | "skipped" = "error",
+    ): void {
+      report.push({
+        source,
+        category: "",
+        score: null,
+        margin: null,
+        candidate: "",
+        runnerUp: null,
+        status,
+        error,
+      });
+      done += 1;
+      options.onProgress?.({ done, total, current: source });
+    }
+
+    function classifiedEntry(item: Pending, scores: Score[]): OutputEntry {
+      const decision = decideCategory(scores);
+      const folder = decision?.category ?? safeFolderName("");
+      const review = decision?.review === true;
+
+      report.push({
+        source: item.source,
+        category: review ? "review" : folder,
+        score: decision?.score ?? null,
+        margin: decision?.margin ?? null,
+        candidate: decision?.candidate ?? "",
+        runnerUp: decision?.runnerUp ?? null,
+        status: review ? "review" : "sorted",
+        error: "",
+      });
+      done += 1;
+      options.onProgress?.({ done, total, current: item.source });
+
+      const outputName = safeFileName(baseName(item.source));
+
+      return {
+        name: uniquePath(review ? `review/${outputName}` : `${folder}/${outputName}`, usedPaths),
+        input: item.image,
+        lastModified: item.lastModified,
+      };
+    }
+
+    async function* flushBatch(): AsyncGenerator<OutputEntry> {
+      if (pending.length === 0) {
+        return;
+      }
+
+      const current = pending;
+      pending = [];
+
+      if (classifyBatch === undefined) {
+        for (const item of current) {
+          try {
+            const result = await classify(item.image, activeLabels);
+
+            yield classifiedEntry(item, result.scores);
+          } catch (error) {
+            recordError(item.source, messageOf(error));
+          }
+        }
+        return;
+      }
+
+      let results: ClassifyResult[];
+
+      try {
+        results = await classifyBatch(
+          current.map((item) => item.image),
+          activeLabels,
+        );
+      } catch (error) {
+        for (const item of current) {
+          recordError(item.source, messageOf(error));
+        }
+        return;
+      }
+
+      for (const [index, item] of current.entries()) {
+        const result = results.at(index);
+
+        if (result === undefined) {
+          recordError(item.source, "missing classification result");
+          continue;
+        }
+
+        yield classifiedEntry(item, result.scores);
+      }
+    }
+
+    async function* outputEntries(): AsyncGenerator<OutputEntry> {
       for (const entry of files) {
         const source = entry.filename;
 
         if (!isImagePath(source)) {
-          report.push({
-            source,
-            category: "",
-            score: null,
-            margin: null,
-            candidate: "",
-            runnerUp: null,
-            status: "skipped",
-            error: "not a supported image",
-          });
-          done += 1;
-          options.onProgress?.({ done, total, current: source });
+          yield* flushBatch();
+          recordError(source, "not a supported image", "skipped");
           continue;
         }
 
@@ -131,68 +221,19 @@ export async function sortArchive(
             useWebWorkers: false,
           });
         } catch (error) {
-          report.push({
-            source,
-            category: "",
-            score: null,
-            margin: null,
-            candidate: "",
-            runnerUp: null,
-            status: "error",
-            error: messageOf(error),
-          });
-          done += 1;
-          options.onProgress?.({ done, total, current: source });
+          yield* flushBatch();
+          recordError(source, messageOf(error));
           continue;
         }
 
-        let scores: Score[];
+        pending.push({ source, image, lastModified: entry.lastModDate });
 
-        try {
-          const result = await classify(image, activeLabels);
-
-          scores = result.scores;
-        } catch (error) {
-          report.push({
-            source,
-            category: "",
-            score: null,
-            margin: null,
-            candidate: "",
-            runnerUp: null,
-            status: "error",
-            error: messageOf(error),
-          });
-          done += 1;
-          options.onProgress?.({ done, total, current: source });
-          continue;
+        if (pending.length === BATCH_SIZE) {
+          yield* flushBatch();
         }
-
-        const decision = decideCategory(scores);
-        const folder = decision?.category ?? safeFolderName("");
-        const review = decision?.review === true;
-
-        report.push({
-          source,
-          category: review ? "review" : folder,
-          score: decision?.score ?? null,
-          margin: decision?.margin ?? null,
-          candidate: decision?.candidate ?? "",
-          runnerUp: decision?.runnerUp ?? null,
-          status: review ? "review" : "sorted",
-          error: "",
-        });
-        done += 1;
-        options.onProgress?.({ done, total, current: source });
-
-        const outputName = safeFileName(baseName(source));
-
-        yield {
-          name: uniquePath(review ? `review/${outputName}` : `${folder}/${outputName}`, usedPaths),
-          input: image,
-          lastModified: entry.lastModDate,
-        };
       }
+
+      yield* flushBatch();
 
       yield {
         name: uniquePath("report.csv", usedPaths),

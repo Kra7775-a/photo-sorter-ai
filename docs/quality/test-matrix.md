@@ -10,7 +10,7 @@ Stryker runs with `coverageAnalysis: "off"`, so it cannot reliably say which tes
 a mutant. The JSON report does include `killedBy` test names, but this matrix attributes tests
 to modules by convention (`X.test.ts`) plus a small override map for shared helpers.
 
-**Total:** 80.73% mutation score · 1186 killed · 25 timed out · 289 survived · 1500 mutants
+**Total:** 82.20% mutation score · 1276 killed · 49 timed out · 287 survived · 1612 mutants
 
 | Module | Test file(s) | Lines | Functions | K / T / S | Mutants | Score |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -19,18 +19,19 @@ to modules by convention (`X.test.ts`) plus a small override map for shared help
 | `server/crypto.ts` | server/crypto.test.ts | 100.00% | 100.00% | 36 / 0 / 7 | 43 | 83.72% |
 | `server/db.ts` | server/db.test.ts | 100.00% | 100.00% | 12 / 0 / 0 | 12 | 100.00% |
 | `server/keys.ts` | server/static.test.ts | 100.00% | 100.00% | 7 / 0 / 0 | 7 | 100.00% |
-| `server/runs.ts` | server/runs.test.ts | 94.70% | 100.00% | 113 / 0 / 48 | 161 | 70.19% |
+| `server/runs.ts` | server/runs.test.ts | 94.70% | 100.00% | 122 / 0 / 48 | 170 | 71.76% |
 | `server/settings.ts` | server/settings.test.ts | 98.48% | 100.00% | 67 / 0 / 18 | 85 | 78.82% |
 | `src/lib/app/auth.ts` | src/lib/app/controller.test.ts | 97.17% | 100.00% | 52 / 0 / 21 | 73 | 71.23% |
 | `src/lib/app/context.ts` | tests/e2e/* | – | – | 0 / 0 / 2 | 2 | 0.00% |
-| `src/lib/app/controller.ts` | src/lib/app/controller.test.ts | 98.98% | 96.00% | 100 / 0 / 33 | 133 | 75.19% |
+| `src/lib/app/controller.ts` | src/lib/app/controller.test.ts | 98.98% | 92.31% | 98 / 2 / 34 | 134 | 74.63% |
 | `src/lib/app/copy.ts` | tests/e2e/*; src/lib/components/AccountPanel.svelte | – | – | 0 / 0 / 1 | 1 | 0.00% |
 | `src/lib/app/types.ts` | src/lib/app/controller.test.ts | 100.00% | 100.00% | 25 / 0 / 0 | 25 | 100.00% |
-| `src/lib/archive/naming.ts` | src/lib/archive/naming.test.ts | 100.00% | 100.00% | 146 / 2 / 30 | 178 | 83.15% |
-| `src/lib/archive/sort.ts` | src/lib/archive/sort.test.ts | 100.00% | 100.00% | 82 / 0 / 19 | 101 | 81.19% |
-| `src/lib/model/engine.ts` | src/lib/model/engine.test.ts | 100.00% | 100.00% | 37 / 12 / 6 | 55 | 89.09% |
+| `src/lib/archive/decision.ts` | src/lib/archive/decision.test.ts | 100.00% | 100.00% | 27 / 0 / 3 | 30 | 90.00% |
+| `src/lib/archive/naming.ts` | src/lib/archive/naming.test.ts | 100.00% | 100.00% | 154 / 2 / 30 | 186 | 83.87% |
+| `src/lib/archive/sort.ts` | src/lib/archive/sort.test.ts | 100.00% | 100.00% | 120 / 0 / 10 | 130 | 92.31% |
+| `src/lib/model/engine.ts` | src/lib/model/engine.test.ts | 100.00% | 100.00% | 46 / 34 / 9 | 89 | 89.89% |
 | `src/lib/model/ranking.ts` | src/lib/model/ranking.test.ts | 100.00% | 100.00% | 9 / 0 / 0 | 9 | 100.00% |
-| `src/lib/sorter/controller.ts` | src/lib/sorter/controller.test.ts | 100.00% | 100.00% | 118 / 2 / 11 | 131 | 91.60% |
+| `src/lib/sorter/controller.ts` | src/lib/sorter/controller.test.ts | 100.00% | 100.00% | 119 / 2 / 11 | 132 | 91.67% |
 | `src/lib/sync/client.ts` | src/lib/sync/client.test.ts | 100.00% | 100.00% | 77 / 8 / 16 | 101 | 84.16% |
 | `src/lib/sync/controller.ts` | src/lib/sync/controller.test.ts | 95.24% | 100.00% | 143 / 0 / 48 | 191 | 74.87% |
 | `src/lib/sync/merge.ts` | src/lib/sync/merge.test.ts | 100.00% | 100.00% | 41 / 0 / 3 | 44 | 93.18% |
@@ -39,22 +40,22 @@ to modules by convention (`X.test.ts`) plus a small override map for shared help
 
 ## Follow-ups
 
-- `server/runs.ts`: 48 survivors, score 70.19% — add assertions for the surviving branches in server/runs.test.ts.
+- `server/runs.ts`: 48 survivors, score 71.76% — add assertions for the surviving branches in server/runs.test.ts.
 - `src/lib/sync/controller.ts`: 48 survivors, score 74.87% — add assertions for the surviving branches in src/lib/sync/controller.test.ts.
-- `src/lib/app/controller.ts`: 33 survivors, score 75.19% — add assertions for the surviving branches in src/lib/app/controller.test.ts.
-- `src/lib/archive/naming.ts`: 30 survivors, score 83.15% — add assertions for the surviving branches in src/lib/archive/naming.test.ts.
+- `src/lib/app/controller.ts`: 34 survivors, score 74.63% — add assertions for the surviving branches in src/lib/app/controller.test.ts.
+- `src/lib/archive/naming.ts`: 30 survivors, score 83.87% — add assertions for the surviving branches in src/lib/archive/naming.test.ts.
 - `src/lib/app/auth.ts`: 21 survivors, score 71.23% — add assertions for the surviving branches in src/lib/app/controller.test.ts.
-- `src/lib/archive/sort.ts`: 19 survivors, score 81.19% — add assertions for the surviving branches in src/lib/archive/sort.test.ts.
+- `server/settings.ts`: 18 survivors, score 78.82% — add assertions for the surviving branches in server/settings.test.ts.
 
 ### Sample surviving mutants
 
 - `server/auth.ts:17` — LogicalOperator → `typeof result === "object" && result !== null && "success" in result || result.success === true`
 - `server/auth.ts:17` — ConditionalExpression → `true`
-- `server/auth.ts:17` — ConditionalExpression → `true`
+- `server/auth.ts:17` — LogicalOperator → `typeof result === "object" && result !== null || "success" in result`
 - `server/crypto.ts:18` — StringLiteral → `""`
 - `server/crypto.ts:61` — ConditionalExpression → `false`
 - `server/crypto.ts:61` — LogicalOperator → `nonce.length !== NONCE_BYTES && payload.length < AUTH_TAG_BYTES`
-- `server/runs.ts:82` — LogicalOperator → `typeof value !== "object" && value === null`
 - `server/runs.ts:82` — ConditionalExpression → `false`
+- `server/runs.ts:82` — LogicalOperator → `typeof value !== "object" && value === null`
 - `server/runs.ts:82` — ConditionalExpression → `false`
 - `server/settings.ts:30` — StringLiteral → ````

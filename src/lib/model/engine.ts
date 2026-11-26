@@ -2,13 +2,21 @@ import type { ClassifyResult, LoadProgress, WorkerRequest, WorkerResponse } from
 
 export type Engine = {
   classify: (image: Blob, labels: string[]) => Promise<ClassifyResult>;
+  classifyBatch: (images: readonly Blob[], labels: string[]) => Promise<ClassifyResult[]>;
   dispose: () => void;
 };
 
-type Pending = {
-  reject: (reason: Error) => void;
-  resolve: (result: ClassifyResult) => void;
-};
+type Pending =
+  | {
+      kind: "classify";
+      reject: (reason: Error) => void;
+      resolve: (result: ClassifyResult) => void;
+    }
+  | {
+      kind: "batch";
+      reject: (reason: Error) => void;
+      resolve: (results: ClassifyResult[]) => void;
+    };
 
 export type EngineOptions = {
   onProgress?: (progress: LoadProgress) => void;
@@ -62,7 +70,17 @@ export function createEngine(options: EngineOptions = {}): Engine {
       return;
     }
 
-    entry.resolve({ ms: message.ms, scores: message.scores });
+    if (message.type === "batch-result") {
+      if (entry.kind === "batch") {
+        entry.resolve(message.results);
+      }
+
+      return;
+    }
+
+    if (entry.kind === "classify") {
+      entry.resolve({ ms: message.ms, scores: message.scores });
+    }
   };
 
   worker.onerror = (event) => {
@@ -83,9 +101,34 @@ export function createEngine(options: EngineOptions = {}): Engine {
       const id = `req-${counter}`;
 
       return new Promise<ClassifyResult>((resolve, reject) => {
-        pending.set(id, { reject, resolve });
+        pending.set(id, { kind: "classify", reject, resolve });
 
         const request: WorkerRequest = { type: "classify", id, image, labels };
+
+        worker.postMessage(request);
+      });
+    },
+    classifyBatch(images, labels) {
+      if (disposed) {
+        return Promise.reject(new Error("AI engine is disposed"));
+      }
+
+      if (images.length === 0) {
+        return Promise.resolve([]);
+      }
+
+      counter += 1;
+      const id = `req-${counter}`;
+
+      return new Promise<ClassifyResult[]>((resolve, reject) => {
+        pending.set(id, { kind: "batch", reject, resolve });
+
+        const request: WorkerRequest = {
+          type: "classify-batch",
+          id,
+          images: [...images],
+          labels,
+        };
 
         worker.postMessage(request);
       });

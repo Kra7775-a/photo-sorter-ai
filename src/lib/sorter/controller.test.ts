@@ -53,9 +53,13 @@ function harness(options: Partial<SorterDeps> = {}) {
   const sortArchive = mock<SorterDeps["sortArchive"]>(
     options.sortArchive ?? (async () => archiveResult()),
   );
+  const classifyBatch = mock<SorterDeps["classifyBatch"]>(
+    options.classifyBatch ?? (async () => []),
+  );
 
   const controller = createSorterController({
     classify,
+    classifyBatch,
     sortArchive,
     createUrl: () => `blob:${++urlId}`,
     revokeUrl: (url) => {
@@ -74,6 +78,7 @@ function harness(options: Partial<SorterDeps> = {}) {
   return {
     controller,
     classify,
+    classifyBatch,
     sortArchive,
     snapshots,
     revoked,
@@ -211,6 +216,12 @@ describe("createSorterController", () => {
     expect(h.sortArchive).toHaveBeenCalledTimes(1);
     expect(h.sortArchive.mock.calls[0][0]).toBe(file);
     expect(h.sortArchive.mock.calls[0][1]).toEqual(LABELS);
+    expect(h.sortArchive.mock.calls[0][4]).toBeDefined();
+
+    const batch = [photo("batch-1.jpg"), photo("batch-2.jpg")];
+
+    await h.sortArchive.mock.calls[0][4]?.(batch, LABELS);
+    expect(h.classifyBatch).toHaveBeenCalledWith(batch, LABELS);
 
     const nested = photo("nested.jpg");
 

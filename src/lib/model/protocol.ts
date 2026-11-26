@@ -20,9 +20,23 @@ export type ClassifyRequest = {
   labels: string[];
 };
 
-export type WorkerRequest = ClassifyRequest;
+export type ClassifyBatchRequest = {
+  type: "classify-batch";
+  id: string;
+  images: Blob[];
+  labels: string[];
+};
+
+export type BatchResult = {
+  type: "batch-result";
+  id: string;
+  results: ClassifyResult[];
+};
+
+export type WorkerRequest = ClassifyRequest | ClassifyBatchRequest;
 
 export type WorkerResponse =
   | { type: "progress"; progress: LoadProgress }
   | ({ type: "result"; id: string } & ClassifyResult)
+  | BatchResult
   | { type: "error"; id: string; message: string };

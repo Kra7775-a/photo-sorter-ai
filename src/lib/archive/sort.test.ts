@@ -11,7 +11,14 @@ import {
 } from "@zip.js/zip.js";
 
 import type { Score } from "../model/protocol";
-import { sortArchive, createZipLoader, type ArchiveProgress, type ZipApi } from "./sort";
+import {
+  BATCH_SIZE,
+  sortArchive,
+  createZipLoader,
+  type ArchiveProgress,
+  type ClassifyBatch,
+  type ZipApi,
+} from "./sort";
 
 const readers: ZipReader<Blob>[] = [];
 
@@ -58,6 +65,16 @@ async function readArchive(blob: Blob): Promise<{ entries: Entry[]; names: strin
   const entries = await reader.getEntries();
 
   return { entries, names: entries.map((entry) => entry.filename).sort() };
+}
+
+async function orderedEntryNames(blob: Blob): Promise<string[]> {
+  const reader = new ZipReader(new BlobReader(blob), { useWebWorkers: false });
+
+  readers.push(reader);
+
+  const entries = await reader.getEntries();
+
+  return entries.map((entry) => entry.filename);
 }
 
 async function readText(entries: Entry[], name: string): Promise<string> {
@@ -313,6 +330,156 @@ describe("sortArchive", () => {
     const { names } = await readArchive(result.blob);
 
     expect(names).toEqual(["_unsorted/unknown.jpg", "report.csv"]);
+  });
+
+  const neverClassify = async (): Promise<{ scores: Score[] }> => {
+    throw new Error("per-image classify must not run");
+  };
+
+  test("classifies a full batch in one call and keeps input order", async () => {
+    const names = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel"];
+    const sources = names.map((name, index) => `${index}-${name}.jpg`);
+    const input = await makeArchive(
+      names.map((name, index) => ({ name: sources[index], data: name })),
+    );
+    const calls: Blob[][] = [];
+    const progress: ArchiveProgress[] = [];
+    const classifyBatch: ClassifyBatch = async (images, labels) => {
+      calls.push(images);
+      expect(labels).toEqual(["people", "nature"]);
+
+      return Promise.all(
+        images.map(async (image) => ({ scores: scoresFor(await image.text(), 0.9), ms: 2 })),
+      );
+    };
+
+    const result = await sortArchive(
+      input,
+      ["people", "nature"],
+      neverClassify,
+      { onProgress: (next) => progress.push(next) },
+      classifyBatch,
+    );
+
+    expect(BATCH_SIZE).toBe(8);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toHaveLength(8);
+    expect(await Promise.all(calls[0].map((image) => image.text()))).toEqual(names);
+    expect(result.report.map((row) => row.source)).toEqual(sources);
+    expect(result.report.map((row) => row.category)).toEqual(names);
+    expect(await orderedEntryNames(result.blob)).toEqual([
+      ...names.map((name, index) => `${name}/${index}-${name}.jpg`),
+      "report.csv",
+    ]);
+    expect(progress.map((next) => next.done)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(progress.map((next) => next.current)).toEqual(["", ...sources]);
+  });
+
+  test("splits nine images into a full batch and a one-image tail", async () => {
+    const names = Array.from({ length: 9 }, (_, index) => `name${index}`);
+    const sources = names.map((name, index) => `${index}-${name}.png`);
+    const input = await makeArchive(
+      names.map((name, index) => ({ name: sources[index], data: name })),
+    );
+    const calls: string[][] = [];
+    const classifyBatch: ClassifyBatch = async (images) => {
+      const texts = await Promise.all(images.map((image) => image.text()));
+
+      calls.push(texts);
+
+      return texts.map((text) => ({ scores: scoresFor(text, 0.9), ms: 1 }));
+    };
+    const progress: ArchiveProgress[] = [];
+
+    const result = await sortArchive(
+      input,
+      ["people"],
+      neverClassify,
+      { onProgress: (next) => progress.push(next) },
+      classifyBatch,
+    );
+
+    expect(calls).toEqual([names.slice(0, 8), names.slice(8)]);
+    expect(result.report.map((row) => row.source)).toEqual(sources);
+    expect(progress).toHaveLength(10);
+    expect(progress.at(-1)?.current).toBe(sources[8]);
+  });
+
+  test("a rejected batch marks every image as an error and still writes report.csv", async () => {
+    const sources = ["a/first.jpg", "b/second.jpg", "c/third.jpg"];
+    const input = await makeArchive(sources.map((source) => ({ name: source, data: "image" })));
+    const progress: ArchiveProgress[] = [];
+    const classifyBatch: ClassifyBatch = async () => {
+      throw new Error("worker exploded");
+    };
+
+    const result = await sortArchive(
+      input,
+      ["people"],
+      neverClassify,
+      { onProgress: (next) => progress.push(next) },
+      classifyBatch,
+    );
+
+    expect(result.counts).toEqual({ errors: 3, skipped: 0, sorted: 0, review: 0 });
+    expect(result.report.map((row) => row.source)).toEqual(sources);
+    expect(result.report.map((row) => row.error)).toEqual([
+      "worker exploded",
+      "worker exploded",
+      "worker exploded",
+    ]);
+    expect(await orderedEntryNames(result.blob)).toEqual(["report.csv"]);
+    expect(progress.map((next) => next.done)).toEqual([0, 1, 2, 3]);
+  });
+
+  test("a short batch result marks the missing images as errors", async () => {
+    const input = await makeArchive([
+      { name: "a/first.jpg", data: "one" },
+      { name: "a/second.jpg", data: "two" },
+    ]);
+    const classifyBatch: ClassifyBatch = async () => [{ scores: scoresFor("people", 0.9), ms: 1 }];
+
+    const result = await sortArchive(input, ["people"], neverClassify, {}, classifyBatch);
+
+    expect(result.report.map((row) => row.status)).toEqual(["sorted", "error"]);
+    expect(result.report[1].error).toBe("missing classification result");
+    expect(result.counts).toEqual({ errors: 1, skipped: 0, sorted: 1, review: 0 });
+  });
+
+  test("flushes a partial batch before a skipped entry to keep report order", async () => {
+    const sources = ["a/one.jpg", "b/two.jpg", "notes.txt", "c/three.jpg", "d/four.jpg"];
+    const input = await makeArchive([
+      { name: sources[0], data: "one" },
+      { name: sources[1], data: "two" },
+      { name: sources[2], data: "not an image" },
+      { name: sources[3], data: "three" },
+      { name: sources[4], data: "four" },
+    ]);
+    const calls: string[][] = [];
+    const classifyBatch: ClassifyBatch = async (images) => {
+      const texts = await Promise.all(images.map((image) => image.text()));
+
+      calls.push(texts);
+
+      return texts.map((text) => ({ scores: scoresFor(text, 0.9), ms: 1 }));
+    };
+    const progress: ArchiveProgress[] = [];
+
+    const result = await sortArchive(
+      input,
+      ["people"],
+      neverClassify,
+      { onProgress: (next) => progress.push(next) },
+      classifyBatch,
+    );
+
+    expect(calls).toEqual([
+      ["one", "two"],
+      ["three", "four"],
+    ]);
+    expect(result.report.map((row) => row.source)).toEqual(sources);
+    expect(result.report[2].status).toBe("skipped");
+    expect(progress.map((next) => next.current)).toEqual(["", ...sources]);
   });
 });
 

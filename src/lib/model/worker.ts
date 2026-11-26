@@ -165,12 +165,51 @@ async function classify(image: Blob, labels: readonly string[]): Promise<Classif
   };
 }
 
+async function classifyBatch(
+  images: readonly Blob[],
+  labels: readonly string[],
+): Promise<ClassifyResult[]> {
+  if (labels.length === 0) {
+    throw new Error("At least one category is required");
+  }
+
+  if (images.length === 0) {
+    return [];
+  }
+
+  const [model, textEmbeds] = await Promise.all([load(), embedLabels(labels)]);
+  const started = performance.now();
+
+  const decoded = await Promise.all(images.map((image) => RawImage.fromBlob(image)));
+  const inputs = await model.processor(decoded);
+  const { image_embeds } = await model.vision(inputs);
+  const embeddings: number[][] = image_embeds.normalize().tolist();
+
+  const scores = embeddings.map((imageEmbed) => {
+    const probabilities = softmax(
+      labels.map((_, index) => LOGIT_SCALE * dot(imageEmbed, textEmbeds[index])),
+    );
+
+    return rankScores(labels, probabilities, TOP_K);
+  });
+  const ms = Math.round((performance.now() - started) / images.length);
+
+  return scores.map((entry) => ({ ms, scores: entry }));
+}
+
 function toMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 async function handle(request: WorkerRequest): Promise<void> {
   try {
+    if (request.type === "classify-batch") {
+      const results = await classifyBatch(request.images, request.labels);
+
+      workerScope.postMessage({ type: "batch-result", id: request.id, results });
+      return;
+    }
+
     const result = await classify(request.image, request.labels);
 
     workerScope.postMessage({ type: "result", id: request.id, ...result });

@@ -115,11 +115,12 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     syncDeps = deps;
     return sync;
   });
-
   const classify = mock<Engine["classify"]>(async () => ({ scores: [], ms: 1 }));
+  const classifyBatch = mock<Engine["classifyBatch"]>(async () => []);
   const engineDispose = mock(() => undefined);
   const createEngine = mock<AppControllerDeps["createEngine"]>(() => ({
     classify,
+    classifyBatch,
     dispose: engineDispose,
   }));
   const sortArchive = mock<AppControllerDeps["sortArchive"]>(async () => ({
@@ -128,7 +129,6 @@ function harness(initial: { storedPref?: boolean; cookie?: string } = {}) {
     report: [],
     counts: { sorted: 1, skipped: 0, errors: 0 },
   }));
-
   const snapshots: AppSnapshot[] = [];
   const app = createAppController({
     authClient,
@@ -299,6 +299,7 @@ describe("createAppController", () => {
     await h.app.start();
     await h.app.handleArchive(archive);
 
+    expect(typeof h.sortArchive.mock.calls[0][4]).toBe("function");
     expect(h.sync.recordRun).toHaveBeenCalledTimes(1);
     expect(h.sync.recordRun).toHaveBeenCalledWith({
       clientRunId: "run-1",
