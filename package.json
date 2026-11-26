@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "imports": {
+    "#shared/counts": "./shared/types.ts"
+  },
   "scripts": {
     "dev": "bun vite",
     "dev:all": "bun scripts/dev-all.ts",

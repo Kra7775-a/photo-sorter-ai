@@ -1,5 +1,7 @@
 import { downloadZip } from "client-zip";
 
+import type { Counts } from "#shared/counts";
+
 import type { ClassifyResult, Score } from "../model/protocol";
 import { decideCategory } from "./decision";
 import {
@@ -36,12 +38,7 @@ export type SortArchiveResult = {
   blob: Blob;
   fileName: string;
   report: ReportRow[];
-  counts: {
-    sorted: number;
-    skipped: number;
-    errors: number;
-    review?: number;
-  };
+  counts: Counts;
 };
 
 type OutputEntry = {

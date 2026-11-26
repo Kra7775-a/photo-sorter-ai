@@ -1,12 +1,6 @@
-import type { ReportRow } from "../archive/naming";
+import type { Counts } from "#shared/counts";
 
-export type Counts = {
-  sorted: number;
-  skipped: number;
-  errors: number;
-  // Optional for synced runs created before the review bucket existed.
-  review?: number;
-};
+import type { ReportRow } from "../archive/naming";
 
 export type SyncRun = {
   clientRunId: string;

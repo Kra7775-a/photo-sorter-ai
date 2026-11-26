@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 
 import type { Elysia } from "elysia";
 
+import type { Counts } from "#shared/counts";
+
 import type { GetSession } from "./auth.ts";
 import type { Config } from "./config.ts";
 import { open, seal, type SealedBlob } from "./crypto.ts";
@@ -13,17 +15,18 @@ export type ReportRow = {
   source: string;
   category: string;
   score: number | null;
-  status: "sorted" | "skipped" | "error";
+  margin?: number | null;
+  candidate?: string;
+  runnerUp?: string | null;
+  status: "sorted" | "skipped" | "error" | "review";
   error: string;
 };
-
-export type RunCounts = { sorted: number; skipped: number; errors: number; review?: number };
 
 export type CreateRunBody = {
   clientRunId: string;
   sourceName: string;
   createdAt: number;
-  counts: RunCounts;
+  counts: Counts;
   rows: ReportRow[];
 };
 
@@ -32,7 +35,7 @@ export type RunMeta = {
   clientRunId: string;
   sourceName: string;
   createdAt: number;
-  counts: RunCounts;
+  counts: Counts;
 };
 
 export type RunDeps = {
@@ -74,7 +77,7 @@ function toMeta(deps: RunDeps, userId: string, row: RunRow): RunMeta {
       "utf8",
     ),
     createdAt: row.created_at,
-    counts: JSON.parse(row.counts_json) as RunCounts,
+    counts: JSON.parse(row.counts_json) as Counts,
   };
 }
 

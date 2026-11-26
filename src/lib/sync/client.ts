@@ -1,4 +1,6 @@
-import type { Counts, SyncRun, SyncSettings } from "./types";
+import type { Counts } from "#shared/counts";
+
+import type { SyncRun, SyncSettings } from "./types";
 
 export type SyncClient = {
   pushRun(run: SyncRun): Promise<string>;

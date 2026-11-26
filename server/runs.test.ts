@@ -124,6 +124,29 @@ describe("sort-run API", () => {
     expect(full.rows).toEqual(run.rows);
   });
 
+  test("round-trips a review row with candidate, runner-up and margin", async () => {
+    const run = makeRun(42, 1);
+    run.counts = { sorted: 0, skipped: 0, errors: 0, review: 1 };
+    run.rows[0] = {
+      source: "uncertain.jpg",
+      category: "review",
+      score: 0.5,
+      margin: 0.1,
+      candidate: "buildings",
+      runnerUp: "graphics",
+      status: "review",
+      error: "",
+    };
+
+    const res = await post(api, "/api/runs", cookieA, run);
+    expect(res.status).toBe(201);
+    const { id } = (await res.json()) as { id: string };
+
+    const detail = await fetch(`${api.baseUrl}/api/runs/${id}`, { headers: { cookie: cookieA } });
+    const full = (await detail.json()) as { rows: typeof run.rows };
+    expect(full.rows).toEqual(run.rows);
+  });
+
   test("accepts legacy counts without review and preserves a numeric review count", async () => {
     const legacy = makeRun(40);
     const legacyRes = await post(api, "/api/runs", cookieA, legacy);

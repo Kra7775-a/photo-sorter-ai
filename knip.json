@@ -20,6 +20,7 @@
   "project": [
     "src/**/*.{ts,svelte,css}",
     "server/**/*.ts",
+    "shared/**/*.ts",
     "scripts/**/*.ts",
     "tests/**/*.ts",
     "*.ts",

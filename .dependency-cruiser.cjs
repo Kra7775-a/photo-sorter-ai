@@ -23,6 +23,13 @@ module.exports = {
       to: { path: "^src/" },
     },
     {
+      name: "shared-leaf",
+      severity: "error",
+      comment: "Shared types must not depend on browser or server code.",
+      from: { path: "^shared/" },
+      to: { path: "^(src|server)/" },
+    },
+    {
       name: "ui-is-leaf",
       severity: "error",
       comment: "UI kit components must not know about domain modules.",

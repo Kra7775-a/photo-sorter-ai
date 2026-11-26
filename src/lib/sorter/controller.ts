@@ -1,3 +1,5 @@
+import type { Counts } from "#shared/counts";
+
 import type { ArchiveProgress, ClassifyImage, SortArchiveResult } from "../archive/sort";
 import type { ClassifyResult, Score } from "../model/protocol";
 import type { SyncRun } from "../sync/types";
@@ -7,7 +9,7 @@ export type SorterItem = { id: number; ms: number; name: string; scores: Score[]
 export type ArchiveView = {
   url: string;
   name: string;
-  counts: { sorted: number; skipped: number; errors: number; review?: number };
+  counts: Counts;
   failures: { source: string; error: string }[];
 };
 

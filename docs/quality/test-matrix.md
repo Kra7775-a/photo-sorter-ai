@@ -10,7 +10,7 @@ Stryker runs with `coverageAnalysis: "off"`, so it cannot reliably say which tes
 a mutant. The JSON report does include `killedBy` test names, but this matrix attributes tests
 to modules by convention (`X.test.ts`) plus a small override map for shared helpers.
 
-**Total:** 82.20% mutation score · 1276 killed · 49 timed out · 287 survived · 1612 mutants
+**Total:** 82.57% mutation score · 1281 killed · 50 timed out · 281 survived · 1612 mutants
 
 | Module | Test file(s) | Lines | Functions | K / T / S | Mutants | Score |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -19,17 +19,17 @@ to modules by convention (`X.test.ts`) plus a small override map for shared help
 | `server/crypto.ts` | server/crypto.test.ts | 100.00% | 100.00% | 36 / 0 / 7 | 43 | 83.72% |
 | `server/db.ts` | server/db.test.ts | 100.00% | 100.00% | 12 / 0 / 0 | 12 | 100.00% |
 | `server/keys.ts` | server/static.test.ts | 100.00% | 100.00% | 7 / 0 / 0 | 7 | 100.00% |
-| `server/runs.ts` | server/runs.test.ts | 94.70% | 100.00% | 122 / 0 / 48 | 170 | 71.76% |
+| `server/runs.ts` | server/runs.test.ts | 94.70% | 100.00% | 124 / 0 / 46 | 170 | 72.94% |
 | `server/settings.ts` | server/settings.test.ts | 98.48% | 100.00% | 67 / 0 / 18 | 85 | 78.82% |
 | `src/lib/app/auth.ts` | src/lib/app/controller.test.ts | 97.17% | 100.00% | 52 / 0 / 21 | 73 | 71.23% |
 | `src/lib/app/context.ts` | tests/e2e/* | – | – | 0 / 0 / 2 | 2 | 0.00% |
-| `src/lib/app/controller.ts` | src/lib/app/controller.test.ts | 98.98% | 92.31% | 98 / 2 / 34 | 134 | 74.63% |
+| `src/lib/app/controller.ts` | src/lib/app/controller.test.ts | 98.98% | 92.31% | 100 / 0 / 34 | 134 | 74.63% |
 | `src/lib/app/copy.ts` | tests/e2e/*; src/lib/components/AccountPanel.svelte | – | – | 0 / 0 / 1 | 1 | 0.00% |
 | `src/lib/app/types.ts` | src/lib/app/controller.test.ts | 100.00% | 100.00% | 25 / 0 / 0 | 25 | 100.00% |
-| `src/lib/archive/decision.ts` | src/lib/archive/decision.test.ts | 100.00% | 100.00% | 27 / 0 / 3 | 30 | 90.00% |
+| `src/lib/archive/decision.ts` | src/lib/archive/decision.test.ts | 100.00% | 100.00% | 28 / 0 / 2 | 30 | 93.33% |
 | `src/lib/archive/naming.ts` | src/lib/archive/naming.test.ts | 100.00% | 100.00% | 154 / 2 / 30 | 186 | 83.87% |
-| `src/lib/archive/sort.ts` | src/lib/archive/sort.test.ts | 100.00% | 100.00% | 120 / 0 / 10 | 130 | 92.31% |
-| `src/lib/model/engine.ts` | src/lib/model/engine.test.ts | 100.00% | 100.00% | 46 / 34 / 9 | 89 | 89.89% |
+| `src/lib/archive/sort.ts` | src/lib/archive/sort.test.ts | 100.00% | 100.00% | 123 / 0 / 7 | 130 | 94.62% |
+| `src/lib/model/engine.ts` | src/lib/model/engine.test.ts | 100.00% | 100.00% | 43 / 37 / 9 | 89 | 89.89% |
 | `src/lib/model/ranking.ts` | src/lib/model/ranking.test.ts | 100.00% | 100.00% | 9 / 0 / 0 | 9 | 100.00% |
 | `src/lib/sorter/controller.ts` | src/lib/sorter/controller.test.ts | 100.00% | 100.00% | 119 / 2 / 11 | 132 | 91.67% |
 | `src/lib/sync/client.ts` | src/lib/sync/client.test.ts | 100.00% | 100.00% | 77 / 8 / 16 | 101 | 84.16% |
@@ -40,8 +40,8 @@ to modules by convention (`X.test.ts`) plus a small override map for shared help
 
 ## Follow-ups
 
-- `server/runs.ts`: 48 survivors, score 71.76% — add assertions for the surviving branches in server/runs.test.ts.
 - `src/lib/sync/controller.ts`: 48 survivors, score 74.87% — add assertions for the surviving branches in src/lib/sync/controller.test.ts.
+- `server/runs.ts`: 46 survivors, score 72.94% — add assertions for the surviving branches in server/runs.test.ts.
 - `src/lib/app/controller.ts`: 34 survivors, score 74.63% — add assertions for the surviving branches in src/lib/app/controller.test.ts.
 - `src/lib/archive/naming.ts`: 30 survivors, score 83.87% — add assertions for the surviving branches in src/lib/archive/naming.test.ts.
 - `src/lib/app/auth.ts`: 21 survivors, score 71.23% — add assertions for the surviving branches in src/lib/app/controller.test.ts.
@@ -49,13 +49,13 @@ to modules by convention (`X.test.ts`) plus a small override map for shared help
 
 ### Sample surviving mutants
 
+- `server/auth.ts:17` — ConditionalExpression → `true`
 - `server/auth.ts:17` — LogicalOperator → `typeof result === "object" && result !== null && "success" in result || result.success === true`
 - `server/auth.ts:17` — ConditionalExpression → `true`
-- `server/auth.ts:17` — LogicalOperator → `typeof result === "object" && result !== null || "success" in result`
 - `server/crypto.ts:18` — StringLiteral → `""`
 - `server/crypto.ts:61` — ConditionalExpression → `false`
 - `server/crypto.ts:61` — LogicalOperator → `nonce.length !== NONCE_BYTES && payload.length < AUTH_TAG_BYTES`
-- `server/runs.ts:82` — ConditionalExpression → `false`
-- `server/runs.ts:82` — LogicalOperator → `typeof value !== "object" && value === null`
-- `server/runs.ts:82` — ConditionalExpression → `false`
+- `server/runs.ts:85` — LogicalOperator → `typeof value !== "object" && value === null`
+- `server/runs.ts:85` — ConditionalExpression → `false`
+- `server/runs.ts:85` — ConditionalExpression → `false`
 - `server/settings.ts:30` — StringLiteral → ````
