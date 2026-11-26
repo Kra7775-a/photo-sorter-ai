@@ -33,6 +33,7 @@
     "secrets": "secretlint \"**/*\" --secretlintignore .gitignore",
     "docs:lint": "markdownlint-cli2 \"**/*.md\"",
     "quality": "bun run dup && bun run unused && bun run spell && bun run secrets && bun run docs:lint",
+    "matrix": "bun scripts/test-matrix.ts",
     "validate": "bun run format:check && bun run lint && bun run arch:check && bun run typecheck && bun run check && bun run test && bun run build",
     "hooks:install": "lefthook install",
     "sast": "bun scripts/semgrep.ts"

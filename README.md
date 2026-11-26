@@ -72,7 +72,12 @@ Quality and security tools (run separately, not part of `validate`):
 bun run quality       # duplication, unused code, spelling, secrets, docs style
 bun run sast          # Semgrep if installed locally; CI always runs it
 bun run hooks:install # install Lefthook pre-commit hooks (fast checks only)
+bun run matrix        # regenerate docs/quality/test-matrix.md from coverage + mutation reports
 ```
+
+`bun run matrix` needs fresh `bun run test:coverage` and `bun run test:mutation` reports. It maps
+modules to test files by convention and documents the generated test matrix; with
+`coverageAnalysis: "off"`, Stryker cannot reliably attribute a mutant to a specific test file.
 
 Lefthook's pre-commit hook runs `format:check`, `lint`, `arch:check`, `secrets` and `spell`;
 the full `validate`, E2E and mutation suites stay explicit. The Semgrep rules in `.semgrep.yml`
@@ -104,7 +109,8 @@ is `off`, it reliably detects changed mutants but cannot reliably tell which tes
 full command before releases and the diff command during development.
 
 Architecture is enforced by dependency-cruiser (`arch:check`, included in `validate`). Its
-rules in `.dependency-cruiser.cjs` encode the decision in `docs/adr/0001-vertical-slices-architecture.md`:
+rules in `.dependency-cruiser.cjs` encode the decisions in `docs/adr/0001-vertical-slices-architecture.md`
+(vertical slices, thin root layout) and `docs/adr/0002-sveltekit-spa.md` (SvelteKit SPA routing):
 cycles, `src ↔ server`, domain → UI, UI leaf, feature-scope leaks, component scope, pages outside the root layout acting as a composition root, no client barrel imports and server route/bootstrap separation are all forbidden. `arch:graph` prints a Mermaid graph of the current dependencies.
 
 Playwright lives in `tests/e2e/` with fixtures in `tests/fixtures/`; it starts `dev:all`
