@@ -1,6 +1,7 @@
 import { downloadZip } from "client-zip";
 
 import type { Score } from "../model/protocol";
+import { decideCategory } from "./decision";
 import {
   archiveOutputName,
   baseName,
@@ -32,6 +33,7 @@ export type SortArchiveResult = {
     sorted: number;
     skipped: number;
     errors: number;
+    review?: number;
   };
 };
 
@@ -40,18 +42,6 @@ type OutputEntry = {
   input: Blob | string;
   lastModified?: Date;
 };
-
-function topScore(scores: readonly Score[]): Score | null {
-  let best: Score | null = null;
-
-  for (const score of scores) {
-    if (best === null || score.score > best.score) {
-      best = score;
-    }
-  }
-
-  return best;
-}
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -122,6 +112,9 @@ export async function sortArchive(
             source,
             category: "",
             score: null,
+            margin: null,
+            candidate: "",
+            runnerUp: null,
             status: "skipped",
             error: "not a supported image",
           });
@@ -142,6 +135,9 @@ export async function sortArchive(
             source,
             category: "",
             score: null,
+            margin: null,
+            candidate: "",
+            runnerUp: null,
             status: "error",
             error: messageOf(error),
           });
@@ -161,6 +157,9 @@ export async function sortArchive(
             source,
             category: "",
             score: null,
+            margin: null,
+            candidate: "",
+            runnerUp: null,
             status: "error",
             error: messageOf(error),
           });
@@ -169,21 +168,27 @@ export async function sortArchive(
           continue;
         }
 
-        const top = topScore(scores);
-        const folder = safeFolderName(top?.label ?? "");
+        const decision = decideCategory(scores);
+        const folder = decision?.category ?? safeFolderName("");
+        const review = decision?.review === true;
 
         report.push({
           source,
-          category: folder,
-          score: top?.score ?? null,
-          status: "sorted",
+          category: review ? "review" : folder,
+          score: decision?.score ?? null,
+          margin: decision?.margin ?? null,
+          candidate: decision?.candidate ?? "",
+          runnerUp: decision?.runnerUp ?? null,
+          status: review ? "review" : "sorted",
           error: "",
         });
         done += 1;
         options.onProgress?.({ done, total, current: source });
 
+        const outputName = safeFileName(baseName(source));
+
         yield {
-          name: uniquePath(`${folder}/${safeFileName(baseName(source))}`, usedPaths),
+          name: uniquePath(review ? `review/${outputName}` : `${folder}/${outputName}`, usedPaths),
           input: image,
           lastModified: entry.lastModDate,
         };
@@ -199,13 +204,15 @@ export async function sortArchive(
     const response = downloadZip(outputEntries(), { buffersAreUTF8: true });
     const blob = await response.blob();
 
-    const counts = { sorted: 0, skipped: 0, errors: 0 };
+    const counts = { sorted: 0, skipped: 0, errors: 0, review: 0 };
 
     for (const row of report) {
       if (row.status === "sorted") {
         counts.sorted += 1;
       } else if (row.status === "skipped") {
         counts.skipped += 1;
+      } else if (row.status === "review") {
+        counts.review += 1;
       } else {
         counts.errors += 1;
       }

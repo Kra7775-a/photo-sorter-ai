@@ -11,6 +11,8 @@
   };
 
   let { result }: Props = $props();
+
+  const reviewCount = $derived(result.counts.review ?? 0);
 </script>
 
 <Alert tone="accent">
@@ -23,6 +25,14 @@
       <RunCounts counts={result.counts} />
     </Badge>
   </div>
+
+  {#if reviewCount > 0}
+    <p class="text-xs text-ink-muted">
+      {reviewCount}
+      {reviewCount === 1 ? "file needs" : "files need"} manual review in
+      <span class="font-medium text-ink">review/</span>.
+    </p>
+  {/if}
 
   {#if result.failures.length > 0}
     <details class="text-xs">

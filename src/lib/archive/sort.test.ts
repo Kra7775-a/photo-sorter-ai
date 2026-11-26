@@ -70,7 +70,11 @@ async function readText(entries: Entry[], name: string): Promise<string> {
   return entry.getData(new TextWriter());
 }
 
-const scoresFor = (label: string, score: number): Score[] => [{ label, score }];
+/** Confident stub with a clear runner-up so the decision stays out of review. */
+const scoresFor = (label: string, score: number): Score[] => [
+  { label, score },
+  { label: "other", score: score - 0.4 },
+];
 
 async function rejectionMessage(promise: Promise<unknown>): Promise<string> {
   try {
@@ -108,7 +112,7 @@ describe("sortArchive", () => {
     );
 
     expect(result.fileName).toBe("photos-sorted.zip");
-    expect(result.counts).toEqual({ errors: 0, skipped: 1, sorted: 3 });
+    expect(result.counts).toEqual({ errors: 0, skipped: 1, sorted: 3, review: 0 });
 
     const { entries, names } = await readArchive(result.blob);
 
@@ -119,8 +123,8 @@ describe("sortArchive", () => {
 
     const report = await readText(entries, "report.csv");
 
-    expect(report).toContain("album/cat.jpg,people,0.7000,sorted,");
-    expect(report).toContain("album/notes.txt,,,skipped,not a supported image");
+    expect(report).toContain("album/cat.jpg,people,0.7000,0.5000,people,animals,sorted,");
+    expect(report).toContain("album/notes.txt,,,,,,skipped,not a supported image");
   });
 
   test("refuses archives whose entry names escape the output directory", async () => {
@@ -145,7 +149,7 @@ describe("sortArchive", () => {
       return { scores: scoresFor("nature", 0.9) };
     });
 
-    expect(result.counts).toEqual({ errors: 1, skipped: 0, sorted: 1 });
+    expect(result.counts).toEqual({ errors: 1, skipped: 0, sorted: 1, review: 0 });
 
     const { entries, names } = await readArchive(result.blob);
 
@@ -153,8 +157,8 @@ describe("sortArchive", () => {
 
     const report = await readText(entries, "report.csv");
 
-    expect(report).toContain("a/fail.jpg,,,error,decode failed");
-    expect(report).toContain("a/ok.jpg,nature,0.9000,sorted,");
+    expect(report).toContain("a/fail.jpg,,,,,,error,decode failed");
+    expect(report).toContain("a/ok.jpg,nature,0.9000,0.4000,nature,other,sorted,");
   });
 
   test("records decompression failures in the report and continues", async () => {
@@ -167,7 +171,7 @@ describe("sortArchive", () => {
       scores: scoresFor("nature", 0.9),
     }));
 
-    expect(result.counts).toEqual({ errors: 1, skipped: 0, sorted: 1 });
+    expect(result.counts).toEqual({ errors: 1, skipped: 0, sorted: 1, review: 0 });
 
     const { entries, names } = await readArchive(result.blob);
 
@@ -175,8 +179,8 @@ describe("sortArchive", () => {
 
     const report = await readText(entries, "report.csv");
 
-    expect(report).toContain("a/bad.jpg,,,error,");
-    expect(report).toContain("a/good.jpg,nature,0.9000,sorted,");
+    expect(report).toContain("a/bad.jpg,,,,,,error,");
+    expect(report).toContain("a/good.jpg,nature,0.9000,0.4000,nature,other,sorted,");
   });
 
   test("writes the report even when the archive has no images", async () => {
@@ -185,13 +189,13 @@ describe("sortArchive", () => {
       throw new Error("must not be called");
     });
 
-    expect(result.counts).toEqual({ errors: 0, skipped: 1, sorted: 0 });
+    expect(result.counts).toEqual({ errors: 0, skipped: 1, sorted: 0, review: 0 });
 
     const { entries, names } = await readArchive(result.blob);
 
     expect(names).toEqual(["report.csv"]);
     expect(await readText(entries, "report.csv")).toContain(
-      "readme.txt,,,skipped,not a supported image",
+      "readme.txt,,,,,,skipped,not a supported image",
     );
   });
 
@@ -207,6 +211,108 @@ describe("sortArchive", () => {
 
     expect(await message).toBe("At least one category is required");
     expect(called).toBe(false);
+  });
+
+  test("moves low-confidence images to review/ with evidence in the report", async () => {
+    const input = await makeArchive([
+      { name: "album/uncertain.jpg", data: "uncertain" },
+      { name: "album/clear.jpg", data: "clear" },
+    ]);
+    const result = await sortArchive(input, ["buildings", "graphics", "people"], async (image) =>
+      (await image.text()) === "uncertain"
+        ? {
+            scores: [
+              { label: "buildings", score: 0.5 },
+              { label: "graphics", score: 0.3 },
+            ],
+          }
+        : {
+            scores: [
+              { label: "people", score: 0.9 },
+              { label: "buildings", score: 0.1 },
+            ],
+          },
+    );
+
+    expect(result.counts).toEqual({ errors: 0, skipped: 0, sorted: 1, review: 1 });
+
+    const { entries, names } = await readArchive(result.blob);
+
+    expect(names).toEqual(["people/clear.jpg", "report.csv", "review/uncertain.jpg"]);
+    expect(names).toHaveLength(3);
+
+    const reviewRow = result.report.find((row) => row.status === "review");
+
+    expect(reviewRow).toEqual({
+      source: "album/uncertain.jpg",
+      category: "review",
+      score: 0.5,
+      margin: 0.2,
+      candidate: "buildings",
+      runnerUp: "graphics",
+      status: "review",
+      error: "",
+    });
+    expect(await readText(entries, "report.csv")).toContain(
+      "album/uncertain.jpg,review,0.5000,0.2000,buildings,graphics,review,",
+    );
+  });
+
+  test("defers a confident-looking image with a narrow margin", async () => {
+    const input = await makeArchive([{ name: "pie mask.png", data: "pie" }]);
+    const result = await sortArchive(input, ["buildings", "graphics"], async () => ({
+      scores: [
+        { label: "buildings", score: 0.9011 },
+        { label: "graphics", score: 0.88 },
+      ],
+    }));
+
+    expect(result.counts).toEqual({ errors: 0, skipped: 0, sorted: 0, review: 1 });
+
+    const { names } = await readArchive(result.blob);
+
+    expect(names).toEqual(["report.csv", "review/pie mask.png"]);
+    expect(result.report[0].status).toBe("review");
+  });
+
+  test("deduplicates review filenames like category folders", async () => {
+    const input = await makeArchive([
+      { name: "a/cat.jpg", data: "a" },
+      { name: "b/cat.jpg", data: "b" },
+    ]);
+    const result = await sortArchive(input, ["buildings", "graphics"], async () => ({
+      scores: [
+        { label: "buildings", score: 0.5 },
+        { label: "graphics", score: 0.3 },
+      ],
+    }));
+
+    expect(result.counts.review).toBe(2);
+
+    const { names } = await readArchive(result.blob);
+
+    expect(names).toEqual(["report.csv", "review/cat (2).jpg", "review/cat.jpg"]);
+  });
+
+  test("keeps empty classification results in _unsorted with null evidence", async () => {
+    const input = await makeArchive([{ name: "album/unknown.jpg", data: "unknown" }]);
+    const result = await sortArchive(input, ["people"], async () => ({ scores: [] }));
+
+    expect(result.counts).toEqual({ errors: 0, skipped: 0, sorted: 1, review: 0 });
+    expect(result.report[0]).toEqual({
+      source: "album/unknown.jpg",
+      category: "_unsorted",
+      score: null,
+      margin: null,
+      candidate: "",
+      runnerUp: null,
+      status: "sorted",
+      error: "",
+    });
+
+    const { names } = await readArchive(result.blob);
+
+    expect(names).toEqual(["_unsorted/unknown.jpg", "report.csv"]);
   });
 });
 

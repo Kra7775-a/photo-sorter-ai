@@ -124,6 +124,45 @@ describe("sort-run API", () => {
     expect(full.rows).toEqual(run.rows);
   });
 
+  test("accepts legacy counts without review and preserves a numeric review count", async () => {
+    const legacy = makeRun(40);
+    const legacyRes = await post(api, "/api/runs", cookieA, legacy);
+    expect(legacyRes.status).toBe(201);
+
+    const reviewed = makeRun(41);
+    const reviewedRes = await post(api, "/api/runs", cookieA, {
+      ...reviewed,
+      counts: { ...reviewed.counts, review: 2 },
+    });
+    expect(reviewedRes.status).toBe(201);
+
+    const list = await fetch(`${api.baseUrl}/api/runs`, { headers: { cookie: cookieA } });
+    const listed = (await list.json()) as {
+      runs: { clientRunId: string; counts: Record<string, unknown> }[];
+    };
+    expect(listed.runs.find((run) => run.clientRunId === legacy.clientRunId)?.counts).toEqual({
+      sorted: 2,
+      skipped: 0,
+      errors: 0,
+    });
+    expect(listed.runs.find((run) => run.clientRunId === reviewed.clientRunId)?.counts).toEqual({
+      sorted: 2,
+      skipped: 0,
+      errors: 0,
+      review: 2,
+    });
+  });
+
+  test("rejects a non-numeric review count with 400 JSON", async () => {
+    const run = makeRun(43);
+    const res = await post(api, "/api/runs", cookieA, {
+      ...run,
+      counts: { ...run.counts, review: "2" },
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "invalid_body" });
+  });
+
   test("duplicate clientRunId is idempotent", async () => {
     const run = makeRun(2);
     const first = await post(api, "/api/runs", cookieA, run);

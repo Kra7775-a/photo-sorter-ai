@@ -1,7 +1,12 @@
 import type { ReportRow } from "../archive/naming";
-import type { SortArchiveResult } from "../archive/sort";
 
-export type Counts = SortArchiveResult["counts"];
+export type Counts = {
+  sorted: number;
+  skipped: number;
+  errors: number;
+  // Optional for synced runs created before the review bucket existed.
+  review?: number;
+};
 
 export type SyncRun = {
   clientRunId: string;

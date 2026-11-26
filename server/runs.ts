@@ -17,7 +17,7 @@ export type ReportRow = {
   error: string;
 };
 
-export type RunCounts = { sorted: number; skipped: number; errors: number };
+export type RunCounts = { sorted: number; skipped: number; errors: number; review?: number };
 
 export type CreateRunBody = {
   clientRunId: string;
@@ -97,7 +97,8 @@ function validBody(value: unknown): value is CreateRunBody {
     !counts ||
     typeof counts.sorted !== "number" ||
     typeof counts.skipped !== "number" ||
-    typeof counts.errors !== "number"
+    typeof counts.errors !== "number" ||
+    (counts.review !== undefined && typeof counts.review !== "number")
   ) {
     return false;
   }

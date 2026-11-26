@@ -19,17 +19,30 @@ const IMAGE_EXTENSIONS = new Set([
 // oxlint-disable-next-line eslint/no-control-regex
 const ILLEGAL_FILENAME_CHARS = /[<>:"/\\|?*\u0000-\u001f]/g;
 
-export type ReportStatus = "sorted" | "skipped" | "error";
+export type ReportStatus = "sorted" | "skipped" | "error" | "review";
 
 export type ReportRow = {
   source: string;
   category: string;
   score: number | null;
+  // Optional for synced runs created before the review bucket existed.
+  margin?: number | null;
+  candidate?: string;
+  runnerUp?: string | null;
   status: ReportStatus;
   error: string;
 };
 
-const REPORT_HEADER = ["source", "category", "score", "status", "error"] as const;
+const REPORT_HEADER = [
+  "source",
+  "category",
+  "score",
+  "margin",
+  "candidate",
+  "runner_up",
+  "status",
+  "error",
+] as const;
 const UTF8_BOM = "\uFEFF";
 
 /** Last path segment; archives may contain both separators in malformed entries. */
@@ -158,6 +171,9 @@ export function buildReportCsv(rows: readonly ReportRow[]): string {
         row.source,
         row.category,
         row.score === null ? "" : row.score.toFixed(4),
+        row.margin == null ? "" : row.margin.toFixed(4),
+        row.candidate ?? "",
+        row.runnerUp ?? "",
         row.status,
         row.error,
       ]

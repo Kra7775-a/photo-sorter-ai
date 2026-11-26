@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { expect, test } from "@playwright/test";
+import { Uint8ArrayReader, Uint8ArrayWriter, ZipReader } from "@zip.js/zip.js";
 
 const ZIP_FIXTURE = fileURLToPath(new URL("../fixtures/photos.zip", import.meta.url));
 
@@ -25,12 +27,32 @@ test.describe("archive sorting", () => {
 
     const downloadLink = page.getByRole("link", { name: "Download photos-sorted.zip" });
     await expect(downloadLink).toBeVisible({ timeout: 300_000 });
-    await expect(page.getByText("sorted: 1 · skipped: 0 · errors: 0").first()).toBeVisible();
+    // The fixture photo is uncertain under the new thresholds, so it lands in review/.
+    await expect(
+      page.getByText("sorted: 0 · skipped: 0 · errors: 0 · review: 1").first(),
+    ).toBeVisible();
+    await expect(page.getByText("1 file needs manual review in review/.").first()).toBeVisible();
 
     const downloadPromise = page.waitForEvent("download");
     await downloadLink.click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe("photos-sorted.zip");
+
+    // Read the downloaded archive in Node to pin the report.csv contract.
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const zip = new ZipReader(new Uint8ArrayReader(new Uint8Array(await readFile(downloadPath))));
+    try {
+      const entries = await zip.getEntries();
+      const report = entries.find((entry) => entry.filename === "report.csv");
+      expect(report).toBeDefined();
+      const csv = Buffer.from(await report!.getData(new Uint8ArrayWriter())).toString("utf8");
+      expect(csv.split("\r\n")[0]).toBe(
+        "\uFEFFsource,category,score,margin,candidate,runner_up,status,error",
+      );
+    } finally {
+      await zip.close();
+    }
 
     await expect(page.getByText("runs: 1", { exact: true })).toBeVisible();
 

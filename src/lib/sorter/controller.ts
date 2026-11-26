@@ -7,7 +7,7 @@ export type SorterItem = { id: number; ms: number; name: string; scores: Score[]
 export type ArchiveView = {
   url: string;
   name: string;
-  counts: { sorted: number; skipped: number; errors: number };
+  counts: { sorted: number; skipped: number; errors: number; review?: number };
   failures: { source: string; error: string }[];
 };
 

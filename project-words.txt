@@ -1,9 +1,11 @@
+Geifman
 MobileCLIP
 ONNX
 Registrator
 Retarget
 Retriable
 Xenova
+Yaniv
 alinaqi
 autobuild
 bestpractices
@@ -23,8 +25,10 @@ jfif
 lefthook
 lombiq
 logit
+logits
 magicast
 maggy
+miscalibrate
 notnull
 oklch
 onnxruntime

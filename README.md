@@ -150,12 +150,20 @@ You can select a `.zip` instead of individual photos. The archive is read one fi
 `*-sorted.zip` archive is assembled:
 
 - photos are placed into folders named after the category (`people/`, `nature/`, …);
+- uncertain photos go to `review/` instead of a likely-wrong category: when the top score is
+  below `0.65` or the gap to the runner-up is below `0.15`;
 - only the file name is used; the original directories inside the archive are not preserved;
 - duplicate names get a ` (2)`, ` (3)` suffix;
-- `report.csv` at the root contains the source, category, confidence and status
-  (`sorted` / `skipped` / `error`);
+- `report.csv` at the root has a UTF-8 BOM and CRLF line endings; its header is
+  `source,category,score,margin,candidate,runner_up,status,error`, with scores and margins
+  written to 4 decimals;
+- status is `sorted`, `review`, `skipped` or `error`; `candidate`, `runner_up` and `margin`
+  record why an image was deferred;
 - non-images and files that fail to decode are not copied, but are listed in the report;
 - HEIC/TIFF are skipped: the browser cannot decode them.
+
+The sorted/review/skipped/error counts appear above the download link. Synced run metadata
+carries an optional `review` count, so runs recorded before the review bucket existed stay valid.
 
 ### Why English labels
 

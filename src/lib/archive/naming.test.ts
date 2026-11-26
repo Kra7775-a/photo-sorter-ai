@@ -132,6 +132,9 @@ describe("buildReportCsv", () => {
       source: "photos/cat.jpg",
       category: "animals",
       score: 0.912345,
+      margin: 0.5,
+      candidate: "animals",
+      runnerUp: "people",
       status: "sorted",
       error: "",
     },
@@ -139,6 +142,9 @@ describe("buildReportCsv", () => {
       source: "notes.txt",
       category: "",
       score: null,
+      margin: null,
+      candidate: "",
+      runnerUp: null,
       status: "skipped",
       error: "not a supported image",
     },
@@ -146,6 +152,9 @@ describe("buildReportCsv", () => {
       source: 'photos/weird, "name".png',
       category: "",
       score: null,
+      margin: null,
+      candidate: "",
+      runnerUp: null,
       status: "error",
       error: 'decode failed: bad "header"',
     },
@@ -154,19 +163,62 @@ describe("buildReportCsv", () => {
   test("writes a header, a BOM and CRLF line endings", () => {
     const csv = buildReportCsv(rows);
 
-    expect(csv.startsWith("\uFEFFsource,category,score,status,error\r\n")).toBe(true);
+    expect(
+      csv.startsWith("\uFEFFsource,category,score,margin,candidate,runner_up,status,error\r\n"),
+    ).toBe(true);
     expect(csv.endsWith("\r\n")).toBe(true);
   });
 
   test("formats scores and escapes commas and quotes", () => {
     const lines = buildReportCsv(rows).split("\r\n");
 
-    expect(lines[1]).toBe("photos/cat.jpg,animals,0.9123,sorted,");
-    expect(lines[2]).toBe("notes.txt,,,skipped,not a supported image");
-    expect(lines[3]).toBe('"photos/weird, ""name"".png",,,error,"decode failed: bad ""header"""');
+    expect(lines[1]).toBe("photos/cat.jpg,animals,0.9123,0.5000,animals,people,sorted,");
+    expect(lines[2]).toBe("notes.txt,,,,,,skipped,not a supported image");
+    expect(lines[3]).toBe(
+      '"photos/weird, ""name"".png",,,,,,error,"decode failed: bad ""header"""',
+    );
+  });
+
+  test("writes review rows with a four-decimal margin and a blank runner-up", () => {
+    const csv = buildReportCsv([
+      {
+        source: "photos/uncertain.jpg",
+        category: "review",
+        score: 0.5,
+        margin: 0.1234,
+        candidate: "buildings",
+        runnerUp: null,
+        status: "review",
+        error: "",
+      },
+    ]);
+
+    expect(csv).toBe(
+      "\uFEFFsource,category,score,margin,candidate,runner_up,status,error\r\n" +
+        "photos/uncertain.jpg,review,0.5000,0.1234,buildings,,review,\r\n",
+    );
+  });
+
+  test("serializes legacy rows without review evidence as blanks", () => {
+    const csv = buildReportCsv([
+      {
+        source: "old.jpg",
+        category: "people",
+        score: 0.9,
+        status: "sorted",
+        error: "",
+      },
+    ]);
+
+    expect(csv).toBe(
+      "\uFEFFsource,category,score,margin,candidate,runner_up,status,error\r\n" +
+        "old.jpg,people,0.9000,,,,sorted,\r\n",
+    );
   });
 
   test("returns just the header for an empty report", () => {
-    expect(buildReportCsv([])).toBe("\uFEFFsource,category,score,status,error\r\n");
+    expect(buildReportCsv([])).toBe(
+      "\uFEFFsource,category,score,margin,candidate,runner_up,status,error\r\n",
+    );
   });
 });
