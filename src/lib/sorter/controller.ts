@@ -26,7 +26,7 @@ export type SorterSnapshot = {
 };
 
 export type SorterDeps = {
-  classify(file: Blob, labels: string[]): Promise<{ scores: Score[]; ms: number }>;
+  classify(file: Blob, labels: string[]): Promise<ClassifyResult>;
   classifyBatch(images: Blob[], labels: string[]): Promise<ClassifyResult[]>;
   sortArchive(
     file: File,

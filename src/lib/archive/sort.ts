@@ -13,7 +13,10 @@ import {
   type ReportRow,
 } from "./naming";
 
-export type ClassifyImage = (image: Blob, labels: string[]) => Promise<{ scores: Score[] }>;
+export type ClassifyImage = (
+  image: Blob,
+  labels: string[],
+) => Promise<Pick<ClassifyResult, "scores">>;
 
 export type ClassifyBatch = (images: Blob[], labels: string[]) => Promise<ClassifyResult[]>;
 

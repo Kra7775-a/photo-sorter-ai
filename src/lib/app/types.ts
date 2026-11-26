@@ -39,15 +39,11 @@ export type AppSnapshot = {
   historyBusy: boolean;
 };
 
-export type AuthResult = {
-  data?: { user?: { email?: string | null } } | null;
-  error?: { message?: string } | null;
-};
+type AuthError = { error?: { message?: string } | null };
 
-export type AuthDeletionResult = {
-  data?: unknown;
-  error?: { message?: string } | null;
-};
+export type AuthResult = AuthError & { data?: { user?: { email?: string | null } } | null };
+
+export type AuthDeletionResult = AuthError & { data?: unknown };
 
 /** The subset of better-auth's client that App actually calls. */
 export type AuthClientLike = {

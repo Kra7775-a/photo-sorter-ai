@@ -35,8 +35,10 @@ export type BatchResult = {
 
 export type WorkerRequest = ClassifyRequest | ClassifyBatchRequest;
 
-export type WorkerResponse =
-  | { type: "progress"; progress: LoadProgress }
-  | ({ type: "result"; id: string } & ClassifyResult)
-  | BatchResult
-  | { type: "error"; id: string; message: string };
+export type ProgressMessage = { type: "progress"; progress: LoadProgress };
+
+export type ClassifyResponse = { type: "result"; id: string } & ClassifyResult;
+
+export type ErrorResponse = { type: "error"; id: string; message: string };
+
+export type WorkerResponse = ProgressMessage | ClassifyResponse | BatchResult | ErrorResponse;

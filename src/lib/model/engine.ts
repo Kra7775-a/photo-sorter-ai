@@ -6,17 +6,11 @@ export type Engine = {
   dispose: () => void;
 };
 
+type PendingRequest<T> = { reject: (reason: Error) => void; resolve: (result: T) => void };
+
 type Pending =
-  | {
-      kind: "classify";
-      reject: (reason: Error) => void;
-      resolve: (result: ClassifyResult) => void;
-    }
-  | {
-      kind: "batch";
-      reject: (reason: Error) => void;
-      resolve: (results: ClassifyResult[]) => void;
-    };
+  | (PendingRequest<ClassifyResult> & { kind: "classify" })
+  | (PendingRequest<ClassifyResult[]> & { kind: "batch" });
 
 export type EngineOptions = {
   onProgress?: (progress: LoadProgress) => void;
