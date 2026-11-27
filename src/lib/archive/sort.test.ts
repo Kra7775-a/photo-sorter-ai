@@ -15,6 +15,7 @@ import {
   BATCH_SIZE,
   sortArchive,
   createZipLoader,
+  parseBatchSize,
   type ArchiveProgress,
   type ClassifyBatch,
   type ZipApi,
@@ -102,6 +103,25 @@ async function rejectionMessage(promise: Promise<unknown>): Promise<string> {
 
   throw new Error("Expected the promise to reject");
 }
+
+describe("parseBatchSize", () => {
+  test("falls back to 8 when no value is provided", () => {
+    expect(parseBatchSize(undefined)).toBe(8);
+  });
+
+  test.each([
+    ["1", 1],
+    ["4", 4],
+    ["16", 16],
+    ["64", 64],
+  ])("accepts the integer string %s", (raw, expected) => {
+    expect(parseBatchSize(raw)).toBe(expected);
+  });
+
+  test.each(["0", "-1", "65", "abc", "1.5", " 8 "])("falls back to 8 for %s", (raw) => {
+    expect(parseBatchSize(raw)).toBe(8);
+  });
+});
 
 describe("sortArchive", () => {
   test("sorts images by the highest score, dedupes names and skips non-images", async () => {

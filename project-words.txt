@@ -6,6 +6,7 @@ Retarget
 Retriable
 Xenova
 Yaniv
+Загрузки
 alinaqi
 autobuild
 bestpractices
@@ -22,6 +23,7 @@ gitleaks
 huggingface
 indexeddb
 jfif
+kramarich
 lefthook
 lombiq
 logit

@@ -28,6 +28,7 @@
     "test:mutation:diff": "bun scripts/mutation.ts diff",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "bench:sort": "bun scripts/bench-sort.ts",
     "arch:check": "depcruise src server --validate",
     "arch:graph": "depcruise src server --output-type mermaid",
     "dup": "jscpd --config .jscpd.json src server scripts tests docs",

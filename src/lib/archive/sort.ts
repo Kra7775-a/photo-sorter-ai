@@ -22,7 +22,25 @@ export type ClassifyImage = (
 
 export type ClassifyBatch = (images: Blob[], labels: string[]) => Promise<ClassifyResult[]>;
 
-export const BATCH_SIZE = 8;
+const DEFAULT_BATCH_SIZE = 8;
+const MIN_BATCH_SIZE = 1;
+const MAX_BATCH_SIZE = 64;
+
+/** Accepts only integer strings in 1..64; anything else falls back to 8. */
+export function parseBatchSize(raw: string | undefined): number {
+  if (raw === undefined || !/^\d+$/.test(raw)) {
+    return DEFAULT_BATCH_SIZE;
+  }
+
+  const size = Number(raw);
+
+  return size >= MIN_BATCH_SIZE && size <= MAX_BATCH_SIZE ? size : DEFAULT_BATCH_SIZE;
+}
+
+// Vite injects `import.meta.env`; other runtimes (e.g. Bun tests) may not.
+const buildEnv = import.meta.env as Record<string, string | undefined> | undefined;
+
+export const BATCH_SIZE = parseBatchSize(buildEnv?.VITE_BATCH_SIZE);
 
 export type ArchiveProgress = {
   done: number;

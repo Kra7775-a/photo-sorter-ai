@@ -26,6 +26,7 @@ bun run test:coverage  # coverage (text + coverage/lcov.info)
 bun run test:mutation     # full mutation tests (Stryker + Bun, ~15 min)
 bun run test:mutation:diff # incremental mutation tests (changed mutants only)
 bun run test:e2e       # Playwright E2E + visual regression
+bun run bench:sort     # measure ZIP sorting in Chromium → reports/bench/*.json
 bun run arch:check     # dependency-cruiser architecture rules
 bun run arch:graph     # dependency graph (Mermaid)
 ```
@@ -174,6 +175,30 @@ carries an optional `review` count, so runs recorded before the review bucket ex
 MobileCLIP's text encoder is English-only. Russian words produce almost random results
 (a photo of a cat ends up under "nature" instead of "animals"). The `a photo of ` template
 noticeably improves short labels like `cat`.
+
+## Sort benchmark
+
+`bun run bench:sort [zipPath]` opens `/app` in Chromium, uploads the ZIP and measures
+the time until the sorted archive appears. Without `zipPath` it uses
+`/home/kramarich/Загрузки/val.zip` (~102 MB, 3925 images). Every run writes a
+timestamped `reports/bench/sort-<timestamp>.json` with elapsed time, UI counts,
+console errors, batch size and the Chromium version. `reports/` is gitignored, so
+no benchmark data is committed.
+
+`VITE_BATCH_SIZE` is the build-time batch size used by the app under test (1–64;
+invalid values fall back to 8):
+
+```bash
+VITE_BATCH_SIZE=16 bun run bench:sort /home/kramarich/Загрузки/val.zip
+```
+
+Without `BENCH_BASE_URL` the script checks port 3000 first and fails with a clear
+message if it is busy — it never stops a foreign server. Set
+`BENCH_BASE_URL=http://localhost:3000` (or another origin) to reuse a running app:
+no server is started and the batch size is whatever that app was built with. When
+it does start one, it runs only `bun vite`, not `dev:all`: guest sorting makes no
+`/api` requests, so no API process or env variables are needed. The server is
+stopped when the benchmark ends.
 
 ## Structure
 
