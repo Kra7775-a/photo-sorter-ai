@@ -17,10 +17,12 @@ depcruise
 developable
 dtype
 elysia
+ensembling
 elysiajs
 fphoto
 gitleaks
 huggingface
+hypot
 indexeddb
 jfif
 kramarich

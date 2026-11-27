@@ -8,6 +8,7 @@ import {
   softmax,
 } from "@huggingface/transformers";
 
+import { averageLabelEmbeddings, labelPrompts } from "./prompt";
 import type { ClassifyResult, LoadProgress, WorkerRequest, WorkerResponse } from "./protocol";
 import { rankScores } from "./ranking";
 
@@ -23,9 +24,8 @@ const TOP_K = 3;
 /**
  * The text tower is English-only: non-English labels score near random
  * (a cat photo lands in "nature" instead of "animals"), so prompts are
- * built in English and the template adds a measurable gain on short labels.
+ * built in English by the prompt helpers.
  */
-const PROMPT_TEMPLATE = "a photo of ";
 const MAX_CACHED_LABEL_SETS = 8;
 
 type Loaded = {
@@ -125,10 +125,10 @@ async function embedLabels(labels: readonly string[]): Promise<number[][]> {
   }
 
   const { text, tokenizer } = await load();
-  const prompts = labels.map((label) => `${PROMPT_TEMPLATE}${label}`);
+  const prompts = labelPrompts(labels);
   const inputs = tokenizer(prompts, { padding: "max_length", truncation: true });
   const { text_embeds } = await text(inputs);
-  const embeddings: number[][] = text_embeds.normalize().tolist();
+  const embeddings = averageLabelEmbeddings(text_embeds.tolist());
 
   if (textCache.size >= MAX_CACHED_LABEL_SETS) {
     const oldestKey = textCache.keys().next().value;

@@ -10,7 +10,7 @@ Stryker runs with `coverageAnalysis: "off"`, so it cannot reliably say which tes
 a mutant. The JSON report does include `killedBy` test names, but this matrix attributes tests
 to modules by convention (`X.test.ts`) plus a small override map for shared helpers.
 
-**Total:** 82.31% mutation score · 1296 killed · 49 timed out · 289 survived · 1634 mutants
+**Total:** 82.51% mutation score · 1323 killed · 50 timed out · 291 survived · 1664 mutants
 
 | Module | Test file(s) | Lines | Functions | K / T / S | Mutants | Score |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -30,6 +30,7 @@ to modules by convention (`X.test.ts`) plus a small override map for shared help
 | `src/lib/archive/naming.ts` | src/lib/archive/naming.test.ts | 100.00% | 100.00% | 154 / 2 / 30 | 186 | 83.87% |
 | `src/lib/archive/sort.ts` | src/lib/archive/sort.test.ts | 100.00% | 100.00% | 140 / 0 / 12 | 152 | 92.11% |
 | `src/lib/model/engine.ts` | src/lib/model/engine.test.ts | 100.00% | 100.00% | 46 / 34 / 9 | 89 | 89.89% |
+| `src/lib/model/prompt.ts` | src/lib/model/prompt.test.ts | 100.00% | 100.00% | 27 / 1 / 2 | 30 | 93.33% |
 | `src/lib/model/ranking.ts` | src/lib/model/ranking.test.ts | 100.00% | 100.00% | 9 / 0 / 0 | 9 | 100.00% |
 | `src/lib/sorter/controller.ts` | src/lib/sorter/controller.test.ts | 100.00% | 100.00% | 119 / 2 / 11 | 132 | 91.67% |
 | `src/lib/sync/client.ts` | src/lib/sync/client.test.ts | 100.00% | 100.00% | 77 / 8 / 16 | 101 | 84.16% |
